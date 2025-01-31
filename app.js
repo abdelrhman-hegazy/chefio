@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/auth", authRouter);
 app.get("/", (req, res) => {
-  res.json({ message: "hello" });
+  res.json({ message: "welcome in chefio" });
 });
 const port = process.env.port || 3000;
 
