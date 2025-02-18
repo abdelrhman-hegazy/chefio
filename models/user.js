@@ -1,3 +1,4 @@
+const { required } = require("joi");
 const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema(
@@ -18,10 +19,20 @@ const userSchema = mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "password required"],
       trim: true,
       select: false,
       minlength: [6, "Too short password"],
+      required: function () {
+        return !this.googleId;
+      },
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows multiple null values
+    },
+    avatar: {
+      type: String,
     },
     verified: {
       type: Boolean,

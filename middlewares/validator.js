@@ -1,68 +1,43 @@
 const joi = require("joi");
+const usernameJoi = joi.string().min(2).required();
+
+const emailJoi = joi
+  .string()
+  .min(6)
+  .max(60)
+  .required()
+  .email({ tlds: { allow: ["com", "net"] } });
+
+const passwordJoi = joi
+  .string()
+  .required()
+  .pattern(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!^%*?#&])[A-Za-z\d@$!%#*?&]{8,}$/
+  );
 
 const signupSchema = joi.object({
-  username: joi
-    .string()
-    .min(2)
-    .required()
-    .pattern(new RegExp("^[a-zA-Z][a-zA-Z0-9_]{2,19}$")),
-  email: joi
-    .string()
-    .min(6)
-    .max(60)
-    .required()
-    .email({ tlds: { allow: ["com", "net"] } }),
-  password: joi
-    .string()
-    .required()
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$")),
+  username: usernameJoi,
+  email: emailJoi,
+  password: passwordJoi,
 });
 
 const signinSchema = joi.object({
-  email: joi
-    .string()
-    .min(6)
-    .max(60)
-    .required()
-    .email({ tlds: { allow: ["com", "net"] } }),
-  password: joi
-    .string()
-    .required()
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$")),
+  email: emailJoi,
+  password: passwordJoi,
 });
 
 const accesptCodeSchema = joi.object({
-  email: joi
-    .string()
-    .min(6)
-    .max(60)
-    .required()
-    .email({ tlds: { allow: ["com", "net"] } }),
-  providedCode: joi.number().required(),
+  email: emailJoi,
 });
 
 const changePasswordSchema = joi.object({
-  oldPassword: joi
-    .string()
-    .required()
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$")),
-  newPassword: joi
-    .string()
-    .required()
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$")),
+  oldPassword: passwordJoi,
+  newPassword: passwordJoi,
 });
 
 const acceptFPCodeSchema = joi.object({
-  email: joi
-    .string()
-    .min(6)
-    .max(60)
-    .required()
-    .email({ tlds: { allow: ["com", "net"] } }),
-  newPassword: joi
-    .string()
-    .required()
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$")),
+  email: emailJoi,
+  newPassword: passwordJoi,
 });
 module.exports = {
   signinSchema,

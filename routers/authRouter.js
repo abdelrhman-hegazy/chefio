@@ -1,9 +1,10 @@
 const express = require("express");
+const passport = require("passport");
 const {
   signup,
   signin,
   signout,
-  sendverificationCode,
+  sendVerificationCode,
   verifyVerificationCode,
   changePassword,
   sendForgotPasswordCode,
@@ -16,11 +17,13 @@ router.post("/signup", signup);
 router.post("/signin", signin);
 router.post("/signout", identifier, signout);
 
-router.patch("/send-verification-code", identifier, sendverificationCode);
-router.patch("/verify-verification-code", identifier, verifyVerificationCode);
+router.patch("/send-verification-code", sendVerificationCode);
+router.patch("/verify-verification-code", verifyVerificationCode);
 
 router.patch("/change-password", identifier, changePassword);
 router.patch("/send-forgot-password-code", sendForgotPasswordCode);
 router.patch("/verify-forgot-password-code", verifyForgotPasswordCode);
+
+
 
 module.exports = router;

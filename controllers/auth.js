@@ -11,6 +11,8 @@ const User = require("../models/user");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
 const { json } = require("express");
+const errorMessages = require("../utils/errorMessages");
+const { sendErrorResponse } = require("../utils/errorHandler");
 
 //signup
 const signup = async (req, res) => {
@@ -24,17 +26,23 @@ const signup = async (req, res) => {
     });
 
     if (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: error.details[0].message });
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        errorMessages.validation_error
+      );
     }
 
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return res
-        .status(401)
-        .json({ success: false, message: "user already exists!" });
+      return sendErrorResponse(
+        res,
+        409,
+        "user already exists!",
+        errorMessages.conflict
+      );
     }
 
     const hashedPassword = await doHash(password, 12);
@@ -53,7 +61,13 @@ const signup = async (req, res) => {
       result,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Error in signup:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      errorMessages.internal_server_error
+    );
   }
 };
 
@@ -64,22 +78,37 @@ const signin = async (req, res) => {
     const { error, value } = signinSchema.validate({ email, password });
 
     if (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: error.details[0].message });
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        errorMessages.validation_error
+      );
+      // res
+      //   .status(401)
+      //   .json({ success: false, message: error.details[0].message });
     }
     const existingUser = await User.findOne({ email }).select("+password");
     if (!existingUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "user does not exists!" });
+      return sendErrorResponse(
+        res,
+        404,
+        "User does not exist!",
+        errorMessages.not_found
+      );
+      // res
+      //   .status(404)
+      //   .json({ success: false, message: "user does not exists!" });
     }
 
     const result = await doHashValidation(password, existingUser.password);
     if (!result) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials!" });
+      return sendErrorResponse(
+        res,
+        401,
+        "Invalid credentials",
+        errorMessages.invalid_credentials
+      );
     }
 
     const token = jwt.sign(
@@ -95,9 +124,12 @@ const signin = async (req, res) => {
     );
     // is verify
     if (!existingUser.verified) {
-      return res
-        .status(401)
-        .json({ success: false, message: "is not verify!" });
+      return sendErrorResponse(
+        res,
+        403,
+        "Your email is not verified. Please verify your account.",
+        errorMessages.forbidden
+      );
     }
     res
       .cookie("Authorization", "Bearer " + token, {
@@ -111,7 +143,13 @@ const signin = async (req, res) => {
         message: "logged in successfully",
       });
   } catch (error) {
-    console.log(error);
+    console.log("Error in signin", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      errorMessages.internal_server_error
+    );
   }
 };
 // signout
@@ -123,47 +161,81 @@ const signout = async (req, res) => {
 };
 
 // send-verification-code
-const sendverificationCode = async (req, res) => {
+const sendVerificationCode = async (req, res) => {
   const { email } = req.body;
+
   try {
     const existingUser = await User.findOne({ email });
+
     if (!existingUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "user does not exist" });
+      return sendErrorResponse(
+        res,
+        404,
+        "User does not exist!",
+        errorMessages.not_found
+      );
     }
 
     if (existingUser.verified) {
-      return res.status(400).json({
-        success: false,
-        message: "you are already verified ",
-      });
+      return sendErrorResponse(
+        res,
+        409,
+        "You are already verified!",
+        errorMessages.conflict
+      );
     }
 
-    const codeValue = Math.floor(Math.random() * 1000000).toString();
-    const info = await transport.sendMail({
+    const codeValue = Math.floor(100000 + Math.random() * 900000).toString();
+
+    if (!transport) {
+      return sendErrorResponse(
+        res,
+        503,
+        "Mail service is unavailable.",
+        errorMessages.service_unavailable
+      );
+    }
+
+    let info = await transport.sendMail({
       from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
       to: existingUser.email,
-      subject: "verification code",
-      html: "<h1>" + codeValue + "</h1>",
+      subject: "Verification Code",
+      html: `<h1>${codeValue}</h1>`,
     });
 
-    if (info.accepted[0] === existingUser.email) {
+    if (
+      info.accepted &&
+      info.accepted.length > 0 &&
+      info.accepted[0] === existingUser.email
+    ) {
       const hashedCodeValue = hmacProcess(
         codeValue,
         process.env.HMAC_VERIFICATION_CODE_SECRET
       );
+
       existingUser.verificationCode = hashedCodeValue;
       existingUser.verificationCodeValidation = Date.now();
       await existingUser.save();
+
       return res.status(200).json({ success: true, message: "Code sent!" });
     }
-    res.status(400).json({ success: false, message: "Code sent failed!" });
+
+    return sendErrorResponse(
+      res,
+      400,
+      "Code sending failed!",
+      errorMessages.bad_request
+    );
   } catch (error) {
-    console.log(error);
+    console.error("Error sending verification email:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      errorMessages.internal_server_error
+    );
   }
 };
-
 //verify-verification-code
 const verifyVerificationCode = async (req, res) => {
   const { email, providedCode } = req.body;
@@ -174,9 +246,15 @@ const verifyVerificationCode = async (req, res) => {
     });
 
     if (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: error.details[0].message });
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        errorMessages.validation_error
+      );
+      // res
+      //   .status(401)
+      //   .json({ success: false, message: error.details[0].message });
     }
     const codeValue = providedCode.toString();
 
@@ -185,32 +263,43 @@ const verifyVerificationCode = async (req, res) => {
     );
 
     if (!existingUser) {
-      return res.status(404).json({
-        success: false,
-        message: "user does not exists!",
-      });
+      return sendErrorResponse(
+        res,
+        404,
+        "User does not exist!",
+        errorMessages.not_found
+      );
     }
     if (existingUser.verified) {
-      return res
-        .status(401)
-        .json({ success: false, message: "you are already verified!" });
+      return sendErrorResponse(
+        res,
+        401,
+        "You are already verified!",
+        errorMessages.conflict
+      );
     }
 
     if (
       !existingUser.verificationCode ||
       !existingUser.verificationCodeValidation
     ) {
-      return res.status(401).json({
-        success: false,
-        message: "somthing is wrong with the code!",
-      });
+      return sendErrorResponse(
+        res,
+        400,
+        "Something is wrong with the code!",
+        errorMessages.bad_request
+      );
+
+    
     }
 
     if (Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000) {
-      return res.status(401).json({
-        success: false,
-        message: "code has been expired!",
-      });
+      return sendErrorResponse(
+        res,
+        401,
+        "Code has been expired!",
+        errorMessages.expired_code
+      );
     }
 
     const hashedCodeValue = hmacProcess(
@@ -231,7 +320,13 @@ const verifyVerificationCode = async (req, res) => {
       .status(401)
       .json({ success: false, message: "unexpected occured!" });
   } catch (error) {
-    console.log(error);
+    console.log("Error in verifyVerificationCode:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      errorMessages.internal_server_error
+    );
   }
 };
 
@@ -328,7 +423,7 @@ const verifyForgotPasswordCode = async (req, res) => {
   try {
     const { error, value } = acceptFPCodeSchema.validate({
       email,
-      newPassword
+      newPassword,
     });
 
     if (error) {
@@ -348,7 +443,6 @@ const verifyForgotPasswordCode = async (req, res) => {
         message: "user does not exists!",
       });
     }
-  
 
     if (
       !existingUser.forgotPasswordCode ||
@@ -360,7 +454,10 @@ const verifyForgotPasswordCode = async (req, res) => {
       });
     }
 
-    if (Date.now() - existingUser.forgotPasswordCodeValidation > 5 * 60 * 1000) {
+    if (
+      Date.now() - existingUser.forgotPasswordCodeValidation >
+      5 * 60 * 1000
+    ) {
       return res.status(401).json({
         success: false,
         message: "code has been expired!",
@@ -372,7 +469,7 @@ const verifyForgotPasswordCode = async (req, res) => {
       process.env.HMAC_VERIFICATION_CODE_SECRET
     );
     if (hashedCodeValue === existingUser.forgotPasswordCode) {
-      const hashedPassword = await doHash(newPassword,12)
+      const hashedPassword = await doHash(newPassword, 12);
       existingUser.password = hashedPassword;
       existingUser.forgotPasswordCode = undefined;
       existingUser.forgotPasswordCodeValidation = undefined;
@@ -394,9 +491,9 @@ module.exports = {
   signup,
   signin,
   signout,
-  sendverificationCode,
+  sendVerificationCode,
   verifyVerificationCode,
   changePassword,
   sendForgotPasswordCode,
-  verifyForgotPasswordCode
+  verifyForgotPasswordCode,
 };

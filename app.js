@@ -20,6 +20,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/auth", authRouter);
+
+app.get("/api/v1/profile", (req, res) => {
+  res.send("welcome in chefio profile");
+});
+
 app.get("/", (req, res) => {
   res.json({ message: "welcome in chefio" });
 });
