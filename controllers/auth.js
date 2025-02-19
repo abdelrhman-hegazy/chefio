@@ -5,13 +5,13 @@ const {
   signupSchema,
   accesptCodeSchema,
   changePasswordSchema,
-  acceptFPCodeSchema,
+  acceptEmailSchema,
+  acceptResetPasswordSchema,
 } = require("../middlewares/validator");
 const User = require("../models/user");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
 const { json } = require("express");
-const errorMessages = require("../utils/errorMessages");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
 //signup
@@ -30,19 +30,14 @@ const signup = async (req, res) => {
         res,
         400,
         error.details[0].message,
-        errorMessages.validation_error
+        "validation_error"
       );
     }
 
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return sendErrorResponse(
-        res,
-        409,
-        "user already exists!",
-        errorMessages.conflict
-      );
+      return sendErrorResponse(res, 409, "user already exists!", "conflict");
     }
 
     const hashedPassword = await doHash(password, 12);
@@ -66,7 +61,7 @@ const signup = async (req, res) => {
       res,
       500,
       "Internal server error",
-      errorMessages.internal_server_error
+      "internal_server_error"
     );
   }
 };
@@ -82,23 +77,12 @@ const signin = async (req, res) => {
         res,
         400,
         error.details[0].message,
-        errorMessages.validation_error
+        "validation_error"
       );
-      // res
-      //   .status(401)
-      //   .json({ success: false, message: error.details[0].message });
     }
     const existingUser = await User.findOne({ email }).select("+password");
     if (!existingUser) {
-      return sendErrorResponse(
-        res,
-        404,
-        "User does not exist!",
-        errorMessages.not_found
-      );
-      // res
-      //   .status(404)
-      //   .json({ success: false, message: "user does not exists!" });
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
     }
 
     const result = await doHashValidation(password, existingUser.password);
@@ -107,7 +91,7 @@ const signin = async (req, res) => {
         res,
         401,
         "Invalid credentials",
-        errorMessages.invalid_credentials
+        "invalid_credentials"
       );
     }
 
@@ -128,7 +112,7 @@ const signin = async (req, res) => {
         res,
         403,
         "Your email is not verified. Please verify your account.",
-        errorMessages.forbidden
+        "forbidden"
       );
     }
     res
@@ -148,7 +132,7 @@ const signin = async (req, res) => {
       res,
       500,
       "Internal server error",
-      errorMessages.internal_server_error
+      "internal_server_error"
     );
   }
 };
@@ -165,15 +149,18 @@ const sendVerificationCode = async (req, res) => {
   const { email } = req.body;
 
   try {
+    const { error, value } = acceptEmailSchema.validate({ email });
     const existingUser = await User.findOne({ email });
-
-    if (!existingUser) {
+    if (error) {
       return sendErrorResponse(
         res,
-        404,
-        "User does not exist!",
-        errorMessages.not_found
+        400,
+        error.details[0].message,
+        "validation_error"
       );
+    }
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
     }
 
     if (existingUser.verified) {
@@ -181,7 +168,7 @@ const sendVerificationCode = async (req, res) => {
         res,
         409,
         "You are already verified!",
-        errorMessages.conflict
+        "conflict"
       );
     }
 
@@ -192,7 +179,7 @@ const sendVerificationCode = async (req, res) => {
         res,
         503,
         "Mail service is unavailable.",
-        errorMessages.service_unavailable
+        "service_unavailable"
       );
     }
 
@@ -220,19 +207,14 @@ const sendVerificationCode = async (req, res) => {
       return res.status(200).json({ success: true, message: "Code sent!" });
     }
 
-    return sendErrorResponse(
-      res,
-      400,
-      "Code sending failed!",
-      errorMessages.bad_request
-    );
+    return sendErrorResponse(res, 400, "Code sending failed!", "bad_request");
   } catch (error) {
     console.error("Error sending verification email:", error);
     return sendErrorResponse(
       res,
       500,
       "Internal server error",
-      errorMessages.internal_server_error
+      "internal_server_error"
     );
   }
 };
@@ -250,11 +232,8 @@ const verifyVerificationCode = async (req, res) => {
         res,
         400,
         error.details[0].message,
-        errorMessages.validation_error
+        "validation_error"
       );
-      // res
-      //   .status(401)
-      //   .json({ success: false, message: error.details[0].message });
     }
     const codeValue = providedCode.toString();
 
@@ -263,19 +242,14 @@ const verifyVerificationCode = async (req, res) => {
     );
 
     if (!existingUser) {
-      return sendErrorResponse(
-        res,
-        404,
-        "User does not exist!",
-        errorMessages.not_found
-      );
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
     }
     if (existingUser.verified) {
       return sendErrorResponse(
         res,
         401,
         "You are already verified!",
-        errorMessages.conflict
+        "conflict"
       );
     }
 
@@ -287,10 +261,8 @@ const verifyVerificationCode = async (req, res) => {
         res,
         400,
         "Something is wrong with the code!",
-        errorMessages.bad_request
+        "bad_request"
       );
-
-    
     }
 
     if (Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000) {
@@ -298,7 +270,7 @@ const verifyVerificationCode = async (req, res) => {
         res,
         401,
         "Code has been expired!",
-        errorMessages.expired_code
+        "expired_code"
       );
     }
 
@@ -325,7 +297,7 @@ const verifyVerificationCode = async (req, res) => {
       res,
       500,
       "Internal server error",
-      errorMessages.internal_server_error
+      "internal_server_error"
     );
   }
 };
@@ -385,15 +357,24 @@ const changePassword = async (req, res) => {
 // send-forgot-password-code
 const sendForgotPasswordCode = async (req, res) => {
   const { email } = req.body;
+
   try {
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) {
-      return res
-        .status(404)
-        .json({ success: false, message: "user does not exist" });
+    const { error, value } = acceptEmailSchema.validate({ email });
+
+    if (error) {
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        "validation_error"
+      );
     }
 
-    const codeValue = Math.floor(Math.random() * 1000000).toString();
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
+    }
+    const codeValue = Math.floor(100000 + Math.random() * 900000).toString();
     const info = await transport.sendMail({
       from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
       to: existingUser.email,
@@ -413,77 +394,138 @@ const sendForgotPasswordCode = async (req, res) => {
     }
     res.status(400).json({ success: false, message: "Code sent failed!" });
   } catch (error) {
-    console.log(error);
+    console.log("Error in signin", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      "internal_server_error"
+    );
   }
 };
 
-//verify-forgot-password-code
+// verify-forgot-password-code
 const verifyForgotPasswordCode = async (req, res) => {
-  const { email, providedCode, newPassword } = req.body;
+  const { email, providedCode } = req.body;
   try {
-    const { error, value } = acceptFPCodeSchema.validate({
+    const { error, value } = accesptCodeSchema.validate({
       email,
-      newPassword,
+      providedCode,
     });
-
     if (error) {
-      return res
-        .status(401)
-        .json({ success: false, message: error.details[0].message });
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        "validation_error"
+      );
     }
-    const codeValue = providedCode.toString();
 
     const existingUser = await User.findOne({ email }).select(
       "+forgotPasswordCode +forgotPasswordCodeValidation"
     );
 
     if (!existingUser) {
-      return res.status(404).json({
-        success: false,
-        message: "user does not exists!",
-      });
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
     }
 
     if (
       !existingUser.forgotPasswordCode ||
       !existingUser.forgotPasswordCodeValidation
     ) {
-      return res.status(401).json({
-        success: false,
-        message: "somthing is wrong with the code!",
-      });
+      return sendErrorResponse(
+        res,
+        401,
+        "Reset code is missing or invalid. Please request a new one.",
+        "invalid_code"
+      );
     }
 
     if (
       Date.now() - existingUser.forgotPasswordCodeValidation >
-      5 * 60 * 1000
+      5 * 60 * 1000 // 5 minutes
     ) {
-      return res.status(401).json({
-        success: false,
-        message: "code has been expired!",
-      });
+      return sendErrorResponse(res, 401, "Code has expired!", "expired_code");
     }
 
     const hashedCodeValue = hmacProcess(
-      codeValue,
+      providedCode.toString(),
       process.env.HMAC_VERIFICATION_CODE_SECRET
     );
+
     if (hashedCodeValue === existingUser.forgotPasswordCode) {
-      const hashedPassword = await doHash(newPassword, 12);
-      existingUser.password = hashedPassword;
-      existingUser.forgotPasswordCode = undefined;
-      existingUser.forgotPasswordCodeValidation = undefined;
-      await existingUser.save();
       return res.status(200).json({
         success: true,
-        message: "password updated!",
+        message: "code is valid, you can reset password now!",
       });
     }
-    return res
-      .status(401)
-      .json({ success: false, message: "unexpected occured!" });
+    return sendErrorResponse(res, 401, "Invalid code!", "invalid_code");
   } catch (error) {
-    console.log(error);
+    console.log("Error in signin", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      "internal_server_error"
+    );
+  }
+};
+
+// reset-password
+const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+  try {
+    const { error, value } = acceptResetPasswordSchema.validate({
+      email,
+      newPassword,
+    });
+    if (error) {
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        "validation_error"
+      );
+    }
+    const existingUser = await User.findOne({ email }).select(
+      "+forgotPasswordCode +forgotPasswordCodeValidation"
+    );
+
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
+    }
+
+    if (
+      !existingUser.forgotPasswordCode ||
+      !existingUser.forgotPasswordCodeValidation
+    ) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Reset code is missing or invalid. Please request a new one.",
+        "invalid_code"
+      );
+    }
+
+    const hashedPassword = await doHash(newPassword, 12);
+    existingUser.password = hashedPassword;
+    existingUser.forgotPasswordCode = undefined;
+    existingUser.forgotPasswordCodeValidation = undefined;
+
+    await existingUser.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password has been updated successfully!",
+    });
+  } catch (error) {
+    console.log("Error in signin", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      "internal_server_error"
+    );
   }
 };
 
@@ -496,4 +538,5 @@ module.exports = {
   changePassword,
   sendForgotPasswordCode,
   verifyForgotPasswordCode,
+  resetPassword,
 };

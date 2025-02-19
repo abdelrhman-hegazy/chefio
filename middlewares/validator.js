@@ -28,21 +28,25 @@ const signinSchema = joi.object({
 
 const accesptCodeSchema = joi.object({
   email: emailJoi,
+  providedCode: joi.number().required(),
 });
-
 const changePasswordSchema = joi.object({
   oldPassword: passwordJoi,
   newPassword: passwordJoi,
 });
-
-const acceptFPCodeSchema = joi.object({
+const acceptEmailSchema = joi.object({
+  email: emailJoi,
+});
+const acceptResetPasswordSchema = joi.object({
   email: emailJoi,
   newPassword: passwordJoi,
 });
+
 module.exports = {
   signinSchema,
   signupSchema,
   accesptCodeSchema,
   changePasswordSchema,
-  acceptFPCodeSchema,
+  acceptEmailSchema,
+  acceptResetPasswordSchema
 };
