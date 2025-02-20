@@ -68,19 +68,39 @@ const identifier = (req, res, next) => {
   try {
     const tokenParts = token.split(" ");
     if (tokenParts.length !== 2) {
-      return sendErrorResponse(res, 401, "Invalid token format", "Invalid_token_format");
+      return sendErrorResponse(
+        res,
+        401,
+        "Invalid token format",
+        "Invalid_token_format"
+      );
     }
 
     const userToken = tokenParts[1];
 
-    jwt.verify(userToken, process.env.TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(userToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
       if (err) {
         if (err.name === "TokenExpiredError") {
-          return sendErrorResponse(res, 401, "Token expired", "TokenExpiredError");
+          return sendErrorResponse(
+            res,
+            401,
+            "Token expired",
+            "TokenExpiredError"
+          );
         } else if (err.name === "JsonWebTokenError") {
-          return sendErrorResponse(res, 403, "Invalid token", "JsonWebTokenError");
+          return sendErrorResponse(
+            res,
+            403,
+            "Invalid token",
+            "JsonWebTokenError"
+          );
         } else {
-          return sendErrorResponse(res, 403, "Unauthorized", "Token_verification_failed");
+          return sendErrorResponse(
+            res,
+            403,
+            "Unauthorized",
+            "Token_verification_failed"
+          );
         }
       }
 
@@ -89,7 +109,7 @@ const identifier = (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    return sendErrorResponse(res, 500, "Internal Server Error", "ServerError");
+    return sendErrorResponse(res, 500, "Internal Server Error", "ServerErroru");
   }
 };
 

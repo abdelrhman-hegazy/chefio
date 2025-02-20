@@ -144,10 +144,44 @@ const signin = async (req, res) => {
 };
 // signout
 const signout = async (req, res) => {
-  res
-    .clearCookie("Authorization")
-    .status(200)
-    .json({ success: true, message: "logged out successfully" });
+  try {
+    // const { refreshToken } = req.body;
+    const isMobileClient = req.headers.client === "not-browser";
+    const refreshToken = isMobileClient
+      ? req.body.refreshToken
+      : req.cookies.Authorization.split(" ")[1];
+
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Refresh token is required!" });
+    }
+
+    const tokenExists = await RefreshToken.findOne({ token: refreshToken });
+
+    if (!tokenExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Token not found or already logged out!",
+      });
+    }
+
+    await RefreshToken.deleteOne({ token: refreshToken });
+
+    // res.clearCookie("Authorization", {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === "production",
+    // });
+    return res
+      .clearCookie("Authorization")
+      .status(200)
+      .json({ success: true, message: "logged out successfully" });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
+  }
 };
 
 // send-verification-code
@@ -552,12 +586,15 @@ const refreshAccessToken = async (req, res) => {
       );
     }
 
-    console.log(refreshToken);
-
     const existingToken = await RefreshToken.findOne({ token: refreshToken });
 
     if (!existingToken) {
-      return sendErrorResponse(res, 403, "invalid refresh uu", "invalid_token");
+      return sendErrorResponse(
+        res,
+        403,
+        "invalid refresh token",
+        "invalid_token"
+      );
     }
 
     const existingUser = await User.findOne({ _id: existingToken.userId });
@@ -582,7 +619,7 @@ const refreshAccessToken = async (req, res) => {
           return res.status(200).json({
             success: true,
             newAccessToken,
-            message: "logged in successfully",
+            message: "refresh token successfully",
           });
         } else {
           return res
@@ -595,7 +632,7 @@ const refreshAccessToken = async (req, res) => {
             .json({
               success: true,
               newAccessToken,
-              message: "logged in successfully",
+              message: "refresh token successfully",
             });
         }
       }
