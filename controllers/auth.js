@@ -8,11 +8,13 @@ const {
   acceptEmailSchema,
   acceptResetPasswordSchema,
 } = require("../middlewares/validator");
-const User = require("../models/user");
+const User = require("../models/User");
+const RefreshToken = require("../models/RefreshTokens");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
 const { json } = require("express");
 const { sendErrorResponse } = require("../utils/errorHandler");
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 //signup
 const signup = async (req, res) => {
@@ -95,17 +97,6 @@ const signin = async (req, res) => {
       );
     }
 
-    const token = jwt.sign(
-      {
-        userId: existingUser._id,
-        email: existingUser.email,
-        verified: existingUser.verified,
-      },
-      process.env.TOKEN_SECRET,
-      {
-        expiresIn: "8h",
-      }
-    );
     // is verify
     if (!existingUser.verified) {
       return sendErrorResponse(
@@ -115,17 +106,32 @@ const signin = async (req, res) => {
         "forbidden"
       );
     }
-    res
-      .cookie("Authorization", "Bearer " + token, {
-        expires: new Date(Date.now() + 8 * 3600000),
-        httpOnly: process.env.NODE_ENV === "production",
-        secure: process.env.NODE_ENV === "production",
-      })
-      .json({
+
+    const accessToken = generateAccessToken(existingUser);
+    const refreshToken = await generateRefreshToken(existingUser);
+
+    const isMobileClient = req.headers.client === "not-browser";
+    if (isMobileClient) {
+      return res.status(200).json({
         success: true,
-        token,
+        accessToken,
+        refreshToken,
         message: "logged in successfully",
       });
+    } else {
+      return res
+        .cookie("Authorization", "Bearer " + refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Strict",
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30days
+        })
+        .json({
+          success: true,
+          accessToken,
+          message: "logged in successfully",
+        });
+    }
   } catch (error) {
     console.log("Error in signin", error);
     return sendErrorResponse(
@@ -529,6 +535,81 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Refresh access Token
+const refreshAccessToken = async (req, res) => {
+  try {
+    const isMobileClient = req.headers.client === "not-browser";
+    const refreshToken = isMobileClient
+      ? req.body.refreshToken
+      : req.cookies.Authorization.split(" ")[1];
+
+    if (!refreshToken) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Unauthorized access!",
+        "unauthorized"
+      );
+    }
+
+    console.log(refreshToken);
+
+    const existingToken = await RefreshToken.findOne({ token: refreshToken });
+
+    if (!existingToken) {
+      return sendErrorResponse(res, 403, "invalid refresh uu", "invalid_token");
+    }
+
+    const existingUser = await User.findOne({ _id: existingToken.userId });
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
+    }
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      (err, decode) => {
+        if (err) {
+          return sendErrorResponse(
+            res,
+            403,
+            "invalid refresh token!",
+            "invalid_token"
+          );
+        }
+
+        const newAccessToken = generateAccessToken(existingUser);
+        if (isMobileClient) {
+          return res.status(200).json({
+            success: true,
+            newAccessToken,
+            message: "logged in successfully",
+          });
+        } else {
+          return res
+            .cookie("Authorization", "Bearer " + refreshToken, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "Strict",
+              maxAge: 30 * 24 * 60 * 60 * 1000, // 30days
+            })
+            .json({
+              success: true,
+              newAccessToken,
+              message: "logged in successfully",
+            });
+        }
+      }
+    );
+  } catch (error) {
+    console.log("Error in refreshToken", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      "internal_server_error"
+    );
+  }
+};
 module.exports = {
   signup,
   signin,
@@ -539,4 +620,5 @@ module.exports = {
   sendForgotPasswordCode,
   verifyForgotPasswordCode,
   resetPassword,
+  refreshAccessToken,
 };

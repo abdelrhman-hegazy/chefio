@@ -1,3 +1,5 @@
+const { invalid } = require("joi");
+
     module.exports = {
     bad_request: "Invalid request. Please check your input.",
     unauthorized: "Unauthorized access. Please log in again.",
@@ -37,4 +39,7 @@
     request_cancelled: "Request was cancelled. Please try again.",
     no_internet_connection: "No internet connection. Please check your network.",
     validation_error: "Some fields are incorrect. Please check and try again.",
-    };
+    invalid_token: "Invalid token. Please log in again.",
+    invalid_code: "Invalid code. Please check and try again.",
+    
+};

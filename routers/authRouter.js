@@ -10,8 +10,10 @@ const {
   sendForgotPasswordCode,
   verifyForgotPasswordCode,
   resetPassword,
+  refreshAccessToken,
 } = require("../controllers/auth");
 const identifier = require("../middlewares/identification");
+const { ref } = require("joi");
 const router = express.Router();
 
 router.post("/signup", signup);
@@ -27,4 +29,5 @@ router.post("/send-forgot-password-code", sendForgotPasswordCode);
 router.post("/verify-forgot-password-code", verifyForgotPasswordCode);
 router.patch("/reset-password", identifier, resetPassword);
 
+router.post("/refresh-token",  refreshAccessToken);
 module.exports = router;

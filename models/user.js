@@ -26,6 +26,9 @@ const userSchema = mongoose.Schema(
         return !this.googleId;
       },
     },
+    refreshToken: {
+      type: String,
+    },
     googleId: {
       type: String,
       unique: true,
