@@ -11,6 +11,7 @@ const {
   verifyForgotPasswordCode,
   resetPassword,
   refreshAccessToken,
+  googleSignin,
 } = require("../controllers/auth");
 const identifier = require("../middlewares/identification");
 const { ref } = require("joi");
@@ -27,7 +28,10 @@ router.patch("/change-password", identifier, changePassword);
 
 router.post("/send-forgot-password-code", sendForgotPasswordCode);
 router.post("/verify-forgot-password-code", verifyForgotPasswordCode);
-router.patch("/reset-password", identifier, resetPassword);
+router.patch("/reset-password", resetPassword);
 
-router.post("/refresh-token",  refreshAccessToken);
+router.post("/refresh-token", refreshAccessToken);
+
+router.post("/google-signin",googleSignin);  
+
 module.exports = router;

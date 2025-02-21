@@ -15,7 +15,7 @@ const transport = require("../middlewares/sendMail");
 const { json } = require("express");
 const { sendErrorResponse } = require("../utils/errorHandler");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
-
+const { verifyGoogleToken } = require("../config/googleAuth");
 //signup
 const signup = async (req, res) => {
   const { email, password, username } = req.body;
@@ -305,7 +305,7 @@ const verifyVerificationCode = async (req, res) => {
       );
     }
 
-    if (Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000) {
+    if (Date.now() - existingUser.verificationCodeValidation > 3 * 60 * 1000) {
       return sendErrorResponse(
         res,
         401,
@@ -596,7 +596,9 @@ const refreshAccessToken = async (req, res) => {
         "invalid_token"
       );
     }
+    // if(){
 
+    // }
     const existingUser = await User.findOne({ _id: existingToken.userId });
     if (!existingUser) {
       return sendErrorResponse(res, 404, "User does not exist!", "not_found");
@@ -606,14 +608,29 @@ const refreshAccessToken = async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET,
       (err, decode) => {
         if (err) {
-          return sendErrorResponse(
-            res,
-            403,
-            "invalid refresh token!",
-            "invalid_token"
-          );
+          if (err.name === "TokenExpiredError") {
+            return sendErrorResponse(
+              res,
+              401,
+              "refresh token expired",
+              "TokenExpiredError"
+            );
+          } else if (err.name === "JsonWebTokenError") {
+            return sendErrorResponse(
+              res,
+              403,
+              "Invalid token",
+              "JsonWebTokenError"
+            );
+          } else {
+            return sendErrorResponse(
+              res,
+              403,
+              "Unauthorized",
+              "Token_verification_failed"
+            );
+          }
         }
-
         const newAccessToken = generateAccessToken(existingUser);
         if (isMobileClient) {
           return res.status(200).json({
@@ -647,6 +664,75 @@ const refreshAccessToken = async (req, res) => {
     );
   }
 };
+// google signin
+const googleSignin = async (req, res) => {
+  try {
+    const { IdToken } = req.body;
+    if (!IdToken) {
+      return sendErrorResponse(
+        res,
+        401,
+        "IdToken is required",
+        "invalid_token"
+      );
+    }
+    const payload = await verifyGoogleToken(IdToken);
+    if (!payload) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Invalid Google token",
+        "invalid_token"
+      );
+    }
+    const platform =
+      payload.aud === process.env.GOOGLE_CLIENT_ID_ANDROID ? "android" : "web";
+    let user = await User.findOne({ email: payload.email });
+
+    if (!user) {
+      user = new User({
+        googleId: payload.sub,
+        email: payload.email,
+        username: payload.name,
+        avatar: payload.picture,
+        verified: true,
+      });
+      await user.save();
+    }
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user);
+
+    if (platform === "android") {
+      return res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken,
+        message: "logged in successfully",
+      });
+    } else {
+      return res
+        .cookie("Authorization", "Bearer " + refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "Strict",
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30days
+        })
+        .json({
+          success: true,
+          accessToken,
+          message: "logged in successfully",
+        });
+    }
+  } catch (error) {
+    console.log("Error in googleSignin", error);
+    return sendErrorResponse(
+      res,
+      500,
+      "Internal server error",
+      "internal_server_error"
+    );
+  }
+};
 module.exports = {
   signup,
   signin,
@@ -658,4 +744,5 @@ module.exports = {
   verifyForgotPasswordCode,
   resetPassword,
   refreshAccessToken,
+  googleSignin,
 };
