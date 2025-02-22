@@ -168,10 +168,6 @@ const signout = async (req, res) => {
 
     await RefreshToken.deleteOne({ token: refreshToken });
 
-    // res.clearCookie("Authorization", {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === "production",
-    // });
     return res
       .clearCookie("Authorization")
       .status(200)
@@ -728,7 +724,7 @@ const googleSignin = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message,
       "internal_server_error"
     );
   }

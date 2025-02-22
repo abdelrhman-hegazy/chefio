@@ -19,7 +19,15 @@ const verifyGoogleToken = async (idToken) => {
     return ticket.getPayload();
   } catch (error) {
     console.log("Error verifying google token: ", error);
-    return sendErrorResponse(res, 401, "Invalid google token", "invalid_token");
+    if (error.message.includes("Token used too early")) {
+      throw new Error("Token used too early. Please try again.");
+    } else if (error.message.includes("Token used too late")) {
+      throw new Error("Token expired. Please try again.");
+    } else if (error.message.includes("Invalid token")) {
+      throw new Error("Invalid Google token. Please login again.");
+    } else {
+      throw new Error("Authentication failed. Try again later.");
+    }
   }
 };
 
