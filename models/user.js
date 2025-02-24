@@ -34,7 +34,7 @@ const userSchema = mongoose.Schema(
       unique: true,
       sparse: true, // Allows multiple null values
     },
-    avatar: {
+    profilePicture: {
       type: String,
     },
     verified: {

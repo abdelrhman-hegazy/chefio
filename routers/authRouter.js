@@ -1,5 +1,4 @@
 const express = require("express");
-const passport = require("passport");
 const {
   signup,
   signin,
@@ -32,6 +31,6 @@ router.patch("/reset-password", resetPassword);
 
 router.post("/refresh-token", refreshAccessToken);
 
-router.post("/google-signin",googleSignin);  
+router.post("/google-signin", googleSignin);
 
 module.exports = router;

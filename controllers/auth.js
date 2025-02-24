@@ -340,9 +340,8 @@ const verifyVerificationCode = async (req, res) => {
 
 // change password
 const changePassword = async (req, res) => {
-  const { userId, verified, email } = req.user;
+  const { userId } = req.user;
   const { oldPassword, newPassword } = req.body;
-  console.log(userId, verified, email);
 
   try {
     const { error, value } = changePasswordSchema.validate({
@@ -355,13 +354,6 @@ const changePassword = async (req, res) => {
         .json({ success: false, message: error.details[0].message });
     }
 
-    if (!verified) {
-      return res.status(401).json({
-        success: false,
-        message: "You are not verifed user!",
-      });
-    }
-
     const existingUser = await User.findOne({ _id: userId }).select(
       "+password"
     );
@@ -372,11 +364,20 @@ const changePassword = async (req, res) => {
         message: "user does not exists!",
       });
     }
+    if (!existingUser.verified) {
+      return res.status(401).json({
+        success: false,
+        message: "You are not verifed user!",
+      });
+    }
     const result = await doHashValidation(oldPassword, existingUser.password);
     if (!result) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid credentials!" });
+      return sendErrorResponse(
+        res,
+        401,
+        "Invalid credentials!",
+        "invalid_credentials"
+      );
     }
     const hashedPassword = await doHash(newPassword, 12);
     existingUser.password = hashedPassword;
@@ -721,12 +722,7 @@ const googleSignin = async (req, res) => {
     }
   } catch (error) {
     console.log("Error in googleSignin", error);
-    return sendErrorResponse(
-      res,
-      500,
-      error.message,
-      "internal_server_error"
-    );
+    return sendErrorResponse(res, 500, error.message, "internal_server_error");
   }
 };
 module.exports = {

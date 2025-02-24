@@ -54,29 +54,19 @@ const { sendErrorResponse } = require("../utils/errorHandler");
 
 const identifier = (req, res, next) => {
   let token;
-
+  
   if (req.headers.client === "not-browser") {
-    token = req.headers.authorization;
+    token = req.headers.cookie.split("%20")[1];
   } else {
-    token = req.cookies["Authorization"];
+    token = req.cookies["Authorization"].split(" ")[1];
   }
 
   if (!token) {
-    return sendErrorResponse(res, 401, "Unauthorized", "No_token_provided");
+    return sendErrorResponse(res, 401, "No_token_provided", "Unauthorized");
   }
 
   try {
-    const tokenParts = token.split(" ");
-    if (tokenParts.length !== 2) {
-      return sendErrorResponse(
-        res,
-        401,
-        "Invalid token format",
-        "Invalid_token_format"
-      );
-    }
-
-    const userToken = tokenParts[1];
+    const userToken = token;
 
     jwt.verify(userToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
       if (err) {
