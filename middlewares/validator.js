@@ -19,7 +19,7 @@
   const recipeSchema = joi.object({
     foodName: joi.string().min(3).required(),
     description: joi.string().min(3).required(),
-    cookingDuration: joi.string().min(1).required(),
+    cookingDuration: joi.string().required(),
     ingredients: joi.array().items(joi.string().min(3)).required(),
     steps: joi.array().items(joi.string().min(3)).required(),
   });

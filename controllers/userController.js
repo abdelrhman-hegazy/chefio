@@ -3,19 +3,14 @@ const { sendErrorResponse } = require("../utils/errorHandler");
 
 const uploadProfilePicture = async (req, res) => {
   const { userId } = req.user;
-  
-  
-  const { path } = req.file;
+
   if (!req.file || !req.file.path) {
     return sendErrorResponse(res, 400, "No image file provided", "bad_request");
   }
   try {
-    if(User.profilePicture !== ""){
-      return sendErrorResponse(res, 400, "No image file provided", "bad_request");
-    }
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profilePicture: path },
+      { profilePicture: req.file.path },
       { new: true }
     );
     if (!updatedUser) {

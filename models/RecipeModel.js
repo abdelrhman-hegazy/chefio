@@ -23,7 +23,7 @@ const recipeSchema = new mongoose.Schema(
       trim: true,
     },
     cookingDuration: {
-      type: String,
+      type: Number,
       required: [true, "Cooking duration is required"],
       trim: true,
     },
@@ -34,6 +34,15 @@ const recipeSchema = new mongoose.Schema(
     steps: {
       type: [String],
       required: [true, "Steps are required"],
+    },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+    likes: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
