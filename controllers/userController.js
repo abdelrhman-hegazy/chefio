@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../models/UserModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
 const uploadProfilePicture = async (req, res) => {

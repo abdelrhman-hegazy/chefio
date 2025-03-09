@@ -2,8 +2,8 @@ const express = require("express");
 const Recipe = require("../models/RecipeModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 const { recipeSchema } = require("../middlewares/validator");
-const User = require("../models/User");
-const Category = require("../models/Category");
+const User = require("../models/UserModel");
+const Category = require("../models/CategoryModel");
 
 //get all categories
 const getCategories = async (req, res) => {
@@ -117,14 +117,16 @@ const getRecipe = async (req, res) => {
       req.query;
     let filter = {};
     // search
-    if (search) filter.foodName = { $regex: search, $options: "i" };
+    if (search) filter.foodName = { $regex: search.trim(), $options: "i" };
     //filter
     if (category) {
-      const categorId = await Category.find({ name: category });
-      if (!categorId) {
+      const categorDoc = await Category.findOne({ name: category }).select(
+        "_id"
+      );
+      if (!categorDoc) {
         return sendErrorResponse(res, 404, "Category not found", "conflict");
       }
-      filter.category = categorId[0]._id;
+      filter.category = categorDoc._id;
     }
 
     if (cookingDuration) {
@@ -147,8 +149,8 @@ const getRecipe = async (req, res) => {
     sort[sortField] = order === "asc" ? 1 : -1; // 1 for ascending A-Z, -1 for descending
 
     // pagination
-    const pageNumber = parseInt(page) || 1;
-    const limitNumber = parseInt(limit) || 10;
+    const pageNumber = Math.max(parseInt(page) || 1, 1);
+    const limitNumber = Math.max(parseInt(limit) || 10, 1);
     const skip = (pageNumber - 1) * limitNumber;
 
     const recipes = await Recipe.find(filter)
@@ -156,7 +158,9 @@ const getRecipe = async (req, res) => {
       .populate({ path: "category", select: "name" })
       .sort(sort)
       .skip(skip)
-      .limit(limitNumber);
+      .limit(limitNumber)
+      .select("recipePicture likes foodName cookingDuration createdAt")
+      .lean();
 
     const totalRecipes = await Recipe.countDocuments(filter);
     return res.status(200).json({
