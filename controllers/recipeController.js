@@ -111,5 +111,64 @@ const createRecipe = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+const getRecipe = async (req, res) => {
+  try {
+    const { search, category, cookingDuration, sortBy, order, page, limit } =
+      req.query;
+    let filter = {};
+    // search
+    if (search) filter.foodName = { $regex: search, $options: "i" };
+    //filter
+    if (category) {
+      const categorId = await Category.find({ name: category });
+      if (!categorId) {
+        return sendErrorResponse(res, 404, "Category not found", "conflict");
+      }
+      filter.category = categorId[0]._id;
+    }
 
-module.exports = { createRecipe, getCategories };
+    if (cookingDuration) {
+      const duration = cookingDuration.split("-").map(Number);
+      if (duration.length === 2) {
+        filter.cookingDuration = { $gte: duration[0], $lte: duration[1] };
+      } else if (!isNaN(duration[0])) {
+        filter.cookingDuration = { $lte: duration[0] };
+      }
+    }
+    // sort
+    const sort = {};
+    const validSortFields = [
+      "foodName",
+      "cookingDuration",
+      "createdAt",
+      "likes",
+    ];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    sort[sortField] = order === "asc" ? 1 : -1; // 1 for ascending A-Z, -1 for descending
+
+    // pagination
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const recipes = await Recipe.find(filter)
+      .populate({ path: "createdBy", select: "username profilePicture" })
+      .populate({ path: "category", select: "name" })
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNumber);
+
+    const totalRecipes = await Recipe.countDocuments(filter);
+    return res.status(200).json({
+      success: true,
+      totalRecipes,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(totalRecipes / limitNumber),
+      recipes,
+    });
+  } catch (error) {
+    sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+
+module.exports = { createRecipe, getCategories, getRecipe };
