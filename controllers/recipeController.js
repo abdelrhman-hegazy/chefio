@@ -4,6 +4,7 @@ const { sendErrorResponse } = require("../utils/errorHandler");
 const { recipeSchema } = require("../middlewares/validator");
 const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
+const { default: mongoose } = require("mongoose");
 
 //get all categories
 const getCategories = async (req, res) => {
@@ -111,6 +112,7 @@ const createRecipe = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+// get recipe (pagination)
 const getRecipe = async (req, res) => {
   try {
     const { search, category, cookingDuration, sortBy, order, page, limit } =
@@ -175,4 +177,28 @@ const getRecipe = async (req, res) => {
   }
 };
 
-module.exports = { createRecipe, getCategories, getRecipe };
+// get recipeById
+const getRecipeById = async (req, res) => {
+  const recipeId = req.params.id;
+  try {
+    if (!mongoose.Types.ObjectId.isValid(recipeId)) {
+      return sendErrorResponse(res, 400, "Invalid recipe id", "bad_request");
+    }
+
+    const recipe = await Recipe.findById(recipeId)
+      .populate({
+        path: "createdBy",
+        select: "username profilePicture",
+      })
+      .populate({
+        path: "category",
+        select: "name",
+      });
+    if (!recipe) {
+      sendErrorResponse(res, 404, "Recipe not found", "not_found");
+    }
+
+    return res.status(200).json({ success: true, recipe });
+  } catch (error) {}
+};
+module.exports = { createRecipe, getCategories, getRecipe, getRecipeById };

@@ -2,3 +2,4 @@
 .env
 .vercel
 scripts
+.vscode
