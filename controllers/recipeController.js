@@ -1,7 +1,7 @@
 const express = require("express");
 const Recipe = require("../models/RecipeModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
-const { recipeSchema } = require("../middlewares/validator");
+const { recipeSchema , recipeUpdateSchema} = require("../middlewares/validator");
 const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
 const { default: mongoose } = require("mongoose");
@@ -117,6 +117,11 @@ const getRecipe = async (req, res) => {
   try {
     const { search, category, cookingDuration, sortBy, order, page, limit } =
       req.query;
+    const { userId } = req.user;
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User not found", "conflict");
+    }
     let filter = {};
     // search
     if (search) filter.foodName = { $regex: search.trim(), $options: "i" };
@@ -180,7 +185,12 @@ const getRecipe = async (req, res) => {
 // get recipeById
 const getRecipeById = async (req, res) => {
   const recipeId = req.params.id;
+  const { userId } = req.user;
   try {
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User not found", "conflict");
+    }
     if (!mongoose.Types.ObjectId.isValid(recipeId)) {
       return sendErrorResponse(res, 400, "Invalid recipe id", "bad_request");
     }
@@ -199,6 +209,95 @@ const getRecipeById = async (req, res) => {
     }
 
     return res.status(200).json({ success: true, recipe });
-  } catch (error) {}
+  } catch (error) {
+    sendErrorResponse(res, 500, error.message, "server_error");
+  }
 };
-module.exports = { createRecipe, getCategories, getRecipe, getRecipeById };
+
+// update recipe
+const updateRecipe = async (req, res) => {
+  const recipeId = req.params.id;
+  const { userId } = req.user;
+
+  const exisitingRecipe = await Recipe.findById(recipeId);
+  if (!exisitingRecipe) {
+    return sendErrorResponse(res, 404, "Recipe not found", "not_found");
+  }
+  if (exisitingRecipe.createdBy.toString() !== userId) {
+    return sendErrorResponse(
+      res,
+      403,
+      "You are not authorized to update this recipe",
+      "forbidden"
+    );
+  }
+
+  let {
+    foodName,
+    description,
+    cookingDuration,
+    ingredients,
+    steps,
+    categoryId,
+  } = req.body;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(recipeId)) {
+      return sendErrorResponse(res, 400, "Invalid recipe id", "bad_request");
+    }
+
+    if (ingredients) ingredients = JSON.parse(ingredients);
+    if (steps) steps = JSON.parse(steps);
+
+    if (!categoryId) {
+      categoryId = exisitingRecipe.category;
+    }
+
+    const { error } = recipeUpdateSchema.validate({
+      foodName,
+      description,
+      cookingDuration,
+      ingredients,
+      steps,
+    });
+    if (error) {
+      return sendErrorResponse(
+        res,
+        400,
+        error.details[0].message,
+        "bad_request"
+      );
+    }
+    let recipePicture = exisitingRecipe.recipePicture;
+    if (req.file && req.file.path) {
+      recipePicture = req.file.path;
+    }
+    const updatedRecipe = await Recipe.findByIdAndUpdate(
+      recipeId,
+      {
+        foodName,
+        description,
+        cookingDuration,
+        ingredients,
+        steps,
+        category: categoryId,
+        recipePicture,
+      },
+      { new: true }
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Recipe updated successfully",
+      recipe: updatedRecipe,
+    });
+  } catch (error) {
+    sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+module.exports = {
+  createRecipe,
+  getCategories,
+  getRecipe,
+  getRecipeById,
+  updateRecipe,
+};
