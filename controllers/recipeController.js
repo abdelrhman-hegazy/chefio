@@ -1,7 +1,10 @@
 const express = require("express");
 const Recipe = require("../models/RecipeModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
-const { recipeSchema , recipeUpdateSchema} = require("../middlewares/validator");
+const {
+  recipeSchema,
+  recipeUpdateSchema,
+} = require("../middlewares/validator");
 const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
 const { default: mongoose } = require("mongoose");
@@ -294,10 +297,38 @@ const updateRecipe = async (req, res) => {
     sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+
+// delete recipe
+const deleteRecipe = async (req, res) => {
+  const recipeId = req.params.id;
+  const { userId } = req.user;
+  const existingRecipe = await Recipe.findById(recipeId);
+  if (!existingRecipe) {
+    return sendErrorResponse(res, 404, "Recipe not found", "not_found");
+  }
+  if (existingRecipe.createdBy.toString() !== userId) {
+    return sendErrorResponse(
+      res,
+      403,
+      "You are not authorized to delete this recipe",
+      "forbidden"
+    );
+  }
+  try {
+    await Recipe.findByIdAndDelete(recipeId);
+    return res
+      .status(200)
+      .json({ success: true, message: "Recipe deleted successfully" });
+  } catch (error) {
+    sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+
 module.exports = {
   createRecipe,
   getCategories,
   getRecipe,
   getRecipeById,
   updateRecipe,
+  deleteRecipe,
 };
