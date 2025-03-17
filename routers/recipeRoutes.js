@@ -6,6 +6,7 @@ const {
   getRecipeById,
   updateRecipe,
   deleteRecipe,
+  likeRecipe,
 } = require("../controllers/recipeController");
 const identifier = require("../middlewares/identification");
 const uploadMulter = require("../middlewares/upload");
@@ -22,4 +23,5 @@ router.get("/get-recipes", identifier, getRecipe);
 router.get("/get-recipe/:id", identifier, getRecipeById);
 router.patch("/update-recipe/:id", identifier, updateRecipe);
 router.delete("/delete-recipe/:id", identifier, deleteRecipe);
+router.patch("/like-recipe/:id", identifier, likeRecipe);
 module.exports = router;

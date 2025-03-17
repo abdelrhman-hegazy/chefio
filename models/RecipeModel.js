@@ -2,19 +2,14 @@ const mongoose = require("mongoose");
 
 const recipeSchema = new mongoose.Schema(
   {
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+    foodName: {
+      type: String,
+      required: [true, "Food name is required"],
+      trim: true,
     },
     recipePicture: {
       type: String,
       required: [true, "Photo is required"],
-      trim: true,
-    },
-    foodName: {
-      type: String,
-      required: [true, "Food name is required"],
       trim: true,
     },
     description: {
@@ -40,7 +35,13 @@ const recipeSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    likes: {
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    likesConut: {
       type: Number,
       default: 0,
     },

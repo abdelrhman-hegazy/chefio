@@ -44,6 +44,8 @@ const createRecipe = async (req, res) => {
       steps,
       categoryId,
     } = req.body;
+    console.log("req.body", req.body);
+
     if (!ingredients || !steps) {
       return sendErrorResponse(
         res,
@@ -182,6 +184,7 @@ const getRecipe = async (req, res) => {
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
+    console.log(error);
   }
 };
 
@@ -210,10 +213,10 @@ const getRecipeById = async (req, res) => {
     if (!recipe) {
       sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }
-
     return res.status(200).json({ success: true, recipe });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
+    console.log(error);
   }
 };
 
@@ -295,6 +298,7 @@ const updateRecipe = async (req, res) => {
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
+    console.log(error);
   }
 };
 
@@ -321,9 +325,44 @@ const deleteRecipe = async (req, res) => {
       .json({ success: true, message: "Recipe deleted successfully" });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
+    console.log(error);
   }
 };
+// like recipe
+const likeRecipe = async (req, res) => {
+  const recipeId = req.params.id;
+  const { userId } = req.user;
 
+  try {
+    if (!mongoose.Types.ObjectId.isValid(recipeId)) {
+      return sendErrorResponse(res, 400, "Invalid recipe id", "bad_request");
+    }
+    const existingRecipe = await Recipe.findById(recipeId);
+    if (!existingRecipe) {
+      return sendErrorResponse(res, 404, "Recipe not found", "not_found");
+    }
+    const hasLiked = existingRecipe.likes.includes(userId);
+    let msg;
+    if (hasLiked) {
+      //unlike recipe
+      existingRecipe.likes = existingRecipe.likes.filter(
+        (id) => id.toString() !== userId
+      );
+      msg = "Recipe unliked successfully";
+    } else {
+      //like recipe
+      existingRecipe.likes.push(userId);
+      msg = "Recipe liked successfully";
+    }
+    existingRecipe.likesConut = existingRecipe.likes.length;
+    await existingRecipe.save();
+
+    return res.status(200).json({ success: true, message: msg });
+  } catch (error) {
+    sendErrorResponse(res, 500, error.message, "server_error");
+    console.log(error);
+  }
+};
 module.exports = {
   createRecipe,
   getCategories,
@@ -331,4 +370,5 @@ module.exports = {
   getRecipeById,
   updateRecipe,
   deleteRecipe,
+  likeRecipe,
 };
