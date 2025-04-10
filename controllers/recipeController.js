@@ -44,7 +44,6 @@ const createRecipe = async (req, res) => {
       steps,
       categoryId,
     } = req.body;
-    console.log("req.body", req.body);
 
     if (!ingredients || !steps) {
       return sendErrorResponse(
@@ -341,6 +340,7 @@ const likeRecipe = async (req, res) => {
     if (!existingRecipe) {
       return sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }
+
     const hasLiked = existingRecipe.likes.includes(userId);
     let msg;
     if (hasLiked) {

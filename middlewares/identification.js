@@ -3,11 +3,9 @@ const { sendErrorResponse } = require("../utils/errorHandler");
 
 const identifier = (req, res, next) => {
   let token;
-
-  if (req.headers.cookie) {
-    token = req.headers.cookie.split("%20")[1];
-  } else if (req.cookies["Authorization"]) {
-    token = req.cookies["Authorization"].split(" ")[1];
+  
+  if (req.headers.authorization) {
+    token = req.headers.authorization.split(" ")[1];
   } else {
     return sendErrorResponse(
       res,
@@ -18,8 +16,7 @@ const identifier = (req, res, next) => {
   }
   try {
     const userToken = token;
-
-    jwt.verify(userToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    jwt.verify(userToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {
         if (err.name === "TokenExpiredError") {
           return sendErrorResponse(

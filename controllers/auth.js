@@ -114,8 +114,8 @@ const signin = async (req, res) => {
     if (isMobileClient) {
       return res.status(200).json({
         success: true,
-        accessToken,
-        refreshToken,
+        accessToken: "Bearer " + accessToken,
+        refreshToken: "Bearer " + refreshToken,
         message: "logged in successfully",
       });
     } else {
@@ -128,7 +128,7 @@ const signin = async (req, res) => {
         })
         .json({
           success: true,
-          accessToken,
+          accessToken: "Bearer " + accessToken,
           message: "logged in successfully",
         });
     }
@@ -571,9 +571,9 @@ const refreshAccessToken = async (req, res) => {
   try {
     const isMobileClient = req.headers.client === "not-browser";
     const refreshToken = isMobileClient
-      ? req.body.refreshToken
+      ? req.body.refreshToken.split(" ")[1]
       : req.cookies.Authorization.split(" ")[1];
-
+          
     if (!refreshToken) {
       return sendErrorResponse(
         res,
@@ -629,26 +629,12 @@ const refreshAccessToken = async (req, res) => {
           }
         }
         const newAccessToken = generateAccessToken(existingUser);
-        if (isMobileClient) {
-          return res.status(200).json({
-            success: true,
-            newAccessToken,
-            message: "refresh token successfully",
-          });
-        } else {
-          return res
-            .cookie("Authorization", "Bearer " + refreshToken, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "Strict",
-              maxAge: 30 * 24 * 60 * 60 * 1000, // 30days
-            })
-            .json({
-              success: true,
-              newAccessToken,
-              message: "refresh token successfully",
-            });
-        }
+
+        return res.status(200).json({
+          success: true,
+          newAccessToken: "Bearer " + newAccessToken,
+          message: "refresh access token successfully",
+        });
       }
     );
   } catch (error) {
