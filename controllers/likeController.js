@@ -1,8 +1,16 @@
 const Like = require("../models/LikeModel");
 const Resipe = require("../models/RecipeModel");
 const User = require("../models/UserModel");
-const sendErrorResponse = require("../utils/errorHandler");
+const { sendErrorResponse } = require("../utils/errorHandler");
 
+// @desc    Like or unlike a recipe
+// @route   POST /api/v1/recipe/likes/:recipeId
+// @access  Private
+// @method  POST
+// @param   {string} recipeId - The ID of the recipe to like or unlike
+// @returns {object} - A success message and the updated likes count
+// @throws  {object} - An error message if the recipe or user is not found, or if there is a server error
+// @throws  {object} - A success message and the updated likes count if the recipe is liked or unliked successfully
 const like = async (req, res) => {
   try {
     const { userId } = req.user;
@@ -41,4 +49,33 @@ const like = async (req, res) => {
   }
 };
 
-module.exports = {like};
+// @desc    Get all likes for a recipe
+const getLikes = async (req, res) => {
+  try {
+    const { recipeId } = req.params;
+    const recipe = await Resipe.findById(recipeId);
+    if (!recipe) {
+      return sendErrorResponse(res, 404, "Recipe not found", "not_found");
+    }
+    const likes = await Like.find({ recipe: recipeId }).populate(
+      "user",
+      "username profilePicture"
+    );
+    if (!likes || likes.length === 0) {
+      return sendErrorResponse(
+        res,
+        404,
+        "No likes found for this recipe",
+        "not_found"
+      );
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Likes retrieved successfully",
+      likes,
+    });
+  } catch (error) {
+    return sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+module.exports = { like, getLikes };

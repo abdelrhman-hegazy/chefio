@@ -7,6 +7,7 @@ const {
 } = require("../middlewares/validator");
 const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
+const Like = require("../models/LikeModel");
 const { default: mongoose } = require("mongoose");
 
 //get all categories
@@ -170,11 +171,24 @@ const getRecipe = async (req, res) => {
       .sort(sort)
       .skip(skip)
       .limit(limitNumber)
-      .select("recipePicture likes foodName cookingDuration createdAt")
+      .select("recipePicture likesCount foodName cookingDuration createdAt")
       .lean();
+    // console.log(recipes);
 
-    // let hasLiked = recipes.likes;
-    // console.log(hasLiked);
+    let likedRecipes = await Like.find({
+      user: userId,
+      recipe: { $in: recipes.map((recipe) => recipe._id) },
+    });
+    let likedRecipeIds = new Set(
+      likedRecipes.map((like) => like.recipe.toString())
+    );
+
+    const updateRecipes = recipes.map((recipe) => {
+      return {
+        ...recipe,
+        isLiked: likedRecipeIds.has(recipe._id.toString()),
+      };
+    });
     // console.log(recipes);
     const totalRecipes = await Recipe.countDocuments(filter);
     return res.status(200).json({
@@ -182,7 +196,7 @@ const getRecipe = async (req, res) => {
       totalRecipes,
       currentPage: pageNumber,
       totalPages: Math.ceil(totalRecipes / limitNumber),
-      recipes,
+      recipes: updateRecipes,
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
@@ -215,9 +229,16 @@ const getRecipeById = async (req, res) => {
     if (!recipe) {
       sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }
-    // hasLiked = recipe.likes.includes(userId);
-
-    return res.status(200).json({ success: true, recipe });
+    let likedRecipe = await Like.find({
+      user: userId,
+      recipe: recipeId,
+    });
+    let isLiked = likedRecipe ? true : false;
+    const updatRecipe = {
+      ...recipe._doc,
+      isLiked: isLiked,
+    };
+    return res.status(200).json({ success: true, recipe: updatRecipe });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
     console.log(error);
