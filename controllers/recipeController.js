@@ -173,6 +173,9 @@ const getRecipe = async (req, res) => {
       .select("recipePicture likes foodName cookingDuration createdAt")
       .lean();
 
+    // let hasLiked = recipes.likes;
+    // console.log(hasLiked);
+    // console.log(recipes);
     const totalRecipes = await Recipe.countDocuments(filter);
     return res.status(200).json({
       success: true,
@@ -212,6 +215,8 @@ const getRecipeById = async (req, res) => {
     if (!recipe) {
       sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }
+    // hasLiked = recipe.likes.includes(userId);
+
     return res.status(200).json({ success: true, recipe });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
@@ -354,7 +359,7 @@ const likeRecipe = async (req, res) => {
       existingRecipe.likes.push(userId);
       msg = "Recipe liked successfully";
     }
-    existingRecipe.likesConut = existingRecipe.likes.length;
+    existingRecipe.likesCount = existingRecipe.likes.length;
     await existingRecipe.save();
 
     return res.status(200).json({ success: true, message: msg });

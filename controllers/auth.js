@@ -573,7 +573,7 @@ const refreshAccessToken = async (req, res) => {
     const refreshToken = isMobileClient
       ? req.body.refreshToken.split(" ")[1]
       : req.cookies.Authorization.split(" ")[1];
-          
+
     if (!refreshToken) {
       return sendErrorResponse(
         res,

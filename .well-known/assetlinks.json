@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.example.chefio_app",
+            "sha256_cert_fingerprints": [
+                "D9:9C:5B:B7:D2:E0:83:92:AB:4A:21:AB:AA:ED:8A:B2:68:67:11:A4:43:F0:2C:86:A0:FD:3D:72:99:90:F3:0D"
+            ]
+        }
+    }
+]

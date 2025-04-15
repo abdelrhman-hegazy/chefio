@@ -10,6 +10,7 @@ const compression = require("compression");
 const authRouter = require("./routers/authRouter");
 const userRouter = require("./routers/userRoutes");
 const recipeRouter = require("./routers/recipeRoutes");
+const likeRouter = require("./routers/likeRouter")
 
 const connectDB = require("./db/connect");
 const app = express();
@@ -24,6 +25,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/recipe", recipeRouter);
+app.use("/api/v1/recipe/likes", likeRouter);
+
 
 app.get("/api/v1/profile", (req, res) => {
   res.send("welcome in chefio profile");
