@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const path = require("path"); // for serving static files
 const helmet = require("helmet"); // adding headers
 const cors = require("cors"); // Cros-Orign Resource sharing
 const cookieParser = require("cookie-parser");
@@ -22,6 +23,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(__dirname,"public"))); // for serving static files
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/recipe", recipeRouter);
