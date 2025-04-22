@@ -233,9 +233,9 @@ const getRecipeById = async (req, res) => {
       user: userId,
       recipe: recipeId,
     });
-    console.log(likedRecipe);
+
+    let isLiked = likedRecipe.length > 0 ? true : false;
     
-    let isLiked = likedRecipe ? true : false;
     const updatRecipe = {
       ...recipe._doc,
       isLiked: isLiked,
