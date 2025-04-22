@@ -37,6 +37,14 @@ const userSchema = mongoose.Schema(
     profilePicture: {
       type: String,
     },
+    followersCount: {
+      type: Number,
+      default: 0,
+    },
+    followingCount: {
+      type: Number,
+      default: 0,
+    },
     verified: {
       type: Boolean,
       default: false,
