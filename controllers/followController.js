@@ -9,7 +9,7 @@ const followChef = async (req, res) => {
     const { targetUserId } = req.params;
 
     if (targetUserId === userId) {
-      sendErrorResponse(
+      return sendErrorResponse(
         res,
         400,
         "you can't follow yourself",
@@ -59,16 +59,31 @@ const followChef = async (req, res) => {
 const getFollowers = async (req, res) => {
   try {
     const { userId } = req.params;
+    const { userId: currentUserId } = req.user;
+    let isFollowed = false;
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return sendErrorResponse(res, 404, "user not found", "not_found");
+    }
+    const isFollowing = await Follow.findOne({
+      follower: currentUserId,
+      following: userId,
+    });
+    isFollowed = !!isFollowing;
+
     const followers = await Follow.find({ following: userId })
       .populate("follower", "username profilePicture")
       .exec();
-
-    if (followers.length === 0) {
-      return sendErrorResponse(res, 404, "No followers found", "not_found");
-    }
+    const updateFollowers = followers.map((f) => {
+      const follower = {
+        ...f.follower._doc,
+        isFollowed: isFollowed,
+      };
+      return follower;
+    });
     res.status(200).json({
       success: true,
-      followers: followers.map((f) => f.follower),
+      followers: updateFollowers,
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
@@ -79,15 +94,32 @@ const getFollowers = async (req, res) => {
 const getFollowing = async (req, res) => {
   try {
     const { userId } = req.user;
+    const { userId: targetUserId } = req.params;
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return sendErrorResponse(res, 404, "user not found", "not_found");
+    }
+    const isFollowing = await Follow.findOne({
+      follower: userId,
+      following: targetUserId,
+    });
+
+    let isFollowed = !!isFollowing;
     const following = await Follow.find({ follower: userId })
       .populate("following", "username profilePicture")
       .exec();
-    if (following.length === 0) {
-      return sendErrorResponse(res, 404, "No following found", "not_found");
-    }
+
+    const updateFollowing = following.map((f) => {
+      const following = {
+        ...f.following._doc,
+        isFollowed: isFollowed,
+      };
+      return following;
+    });
+
     res.status(200).json({
       success: true,
-      following: following.map((f) => f.following),
+      following: updateFollowing,
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");

@@ -54,6 +54,8 @@ const createRecipe = async (req, res) => {
         "bad_request"
       );
     }
+    
+    
     ingredients = JSON.parse(ingredients);
     steps = JSON.parse(steps);
 
