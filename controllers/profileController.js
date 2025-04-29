@@ -152,4 +152,117 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { uploadProfilePicture, getProfile };
+const getRecipesProfile = async (req, res) => {
+  const { userId } = req.user;
+  const { userId: targetUserId } = req.params;
+
+  // pagination for recipes
+  const pageRecipes = parseInt(req.query.pageRecipes) || 1;
+  const limitRecipes = parseInt(req.query.limitRecipes) || 10;
+  const skipRecipes = (pageRecipes - 1) * limitRecipes;
+
+  try {
+    const targetUser = await User.findById(targetUserId).lean();
+    if (!targetUser) {
+      return sendErrorResponse(res, 404, "Target user not found", "not_found");
+    }
+
+    const totalUserRecipes = await Recipe.countDocuments({
+      createdBy: targetUserId,
+    });
+    const userRecipes = await Recipe.find({ createdBy: targetUserId })
+      .select("recipePicture foodName cookingDuration category")
+      .populate("category", "name")
+      .sort({ createdAt: -1 })
+      .skip(skipRecipes)
+      .limit(limitRecipes)
+      .lean();
+
+    const currentuserLikes = await Like.find({ user: userId })
+      .select("recipe")
+      .lean();
+
+    const likedRecipeIds = new Set(
+      currentuserLikes.map((like) => like.recipe.toString())
+    );
+    const formattedRecipes = userRecipes.map((recipe) => ({
+      ...recipe,
+      isLiked: likedRecipeIds.has(recipe._id.toString()),
+    }));
+    res.status(200).json({
+      success: true,
+      message: "User recipes fetched successfully!",
+      recipes: {
+        totalRecipes: totalUserRecipes,
+        currentPage: pageRecipes,
+        totalPages: Math.ceil(totalUserRecipes / limitRecipes),
+        recipes: formattedRecipes,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user recipes:", error);
+    return sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+
+const getLikedRecipesProfile = async (req, res) => {
+  const { userId } = req.user;
+  const { userId: targetUserId } = req.params;
+
+  // pagination for likedRecipes
+  const pageLikedRecipes = parseInt(req.query.pageLikedRecipes) || 1;
+  const limitLikedRecipes = parseInt(req.query.limitLikedRecipes) || 10;
+  const skipLikedRecipes = (pageLikedRecipes - 1) * limitLikedRecipes;
+
+  try {
+    const targetUser = await User.findById(targetUserId).lean();
+    if (!targetUser) {
+      return sendErrorResponse(res, 404, "Target user not found", "not_found");
+    }
+
+    const totalUserLikedRecipes = await Like.countDocuments({
+      user: targetUserId,
+    });
+    const userLikedRecipes = await Like.find({ user: targetUserId })
+      .select("-_id -__v -user -createdAt -updatedAt")
+      .populate({
+        path: "recipe",
+        select: "recipePicture foodName cookingDuration category",
+        populate: { path: "category", select: "name" },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skipLikedRecipes)
+      .limit(limitLikedRecipes)
+      .lean();
+    const currentuserLikes = await Like.find({ user: userId })
+      .select("recipe")
+      .lean();
+    const likedRecipeIds = new Set(
+      currentuserLikes.map((like) => like.recipe.toString())
+    );
+    const formattedLikedRecipes = userLikedRecipes.map((like) => ({
+      ...like.recipe,
+      isLiked: likedRecipeIds.has(like.recipe._id.toString()),
+    }));
+    res.status(200).json({
+      success: true,
+      message: "User liked recipes fetched successfully!",
+      recipes: {
+        totalLikedRecipes: totalUserLikedRecipes,
+        currentPage: pageLikedRecipes,
+        totalPages: Math.ceil(totalUserLikedRecipes / limitLikedRecipes),
+        recipes: formattedLikedRecipes,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user liked recipes:", error);
+    return sendErrorResponse(res, 500, error.message, "server_error");
+  }
+};
+
+module.exports = {
+  uploadProfilePicture,
+  getProfile,
+  getRecipesProfile,
+  getLikedRecipesProfile,
+};

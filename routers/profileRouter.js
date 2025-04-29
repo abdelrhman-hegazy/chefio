@@ -2,6 +2,8 @@ const express = require("express");
 const {
   uploadProfilePicture,
   getProfile,
+  getRecipesProfile,
+  getLikedRecipesProfile,
 } = require("../controllers/profileController");
 const identifier = require("../middlewares/identification");
 // const upload = require('../middlewares/upload');
@@ -15,5 +17,6 @@ router.patch(
   uploadProfilePicture
 );
 router.get("/get-profile/:userId", identifier, getProfile);
-
+router.get("/get-recipes-profile/:userId", identifier, getRecipesProfile);
+router.get("/get-liked-recipes-profile/:userId", identifier, getLikedRecipesProfile);
 module.exports = router;
