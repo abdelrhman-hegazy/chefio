@@ -52,9 +52,9 @@ const getProfile = async (req, res) => {
       currentUserLikes,
       totalUserRecipes,
       userRecipes,
-      totalUserLikedRecipes,
-      userLikedRecipes,
-      isfollowing,
+      // totalUserLikedRecipes,
+      // userLikedRecipes,
+      // isfollowing,
     ] = await Promise.all([
       User.findById(targetUserId).select("-password -__v").lean(),
       User.findById(userId).lean(),
@@ -67,24 +67,33 @@ const getProfile = async (req, res) => {
         .skip(skipRecipes)
         .limit(limitRecipes)
         .lean(),
-      Like.countDocuments({ user: targetUserId }),
-      Like.find({ user: targetUserId })
-        .select("-_id -__v -user -createdAt -updatedAt")
-        .populate({
-          path: "recipe",
-          select: "recipePicture foodName cookingDuration category",
-          populate: { path: "category", select: "name" },
-        })
-        .sort({ createdAt: -1 })
-        .skip(skipLikedRecipes)
-        .limit(limitLikedRecipes)
-        .lean(),
-      Follow.findOne({
-        follower: userId,
-        following: targetUserId,
-      }).lean(),
+      // Like.countDocuments({ user: targetUserId }),
+      // Like.find({ user: targetUserId })
+      //   .select("-_id -__v -user -createdAt -updatedAt")
+      //   .populate({
+      //     path: "recipe",
+      //     select: "recipePicture foodName cookingDuration category",
+      //     populate: { path: "category", select: "name" },
+      //   })
+      //   .sort({ createdAt: -1 })
+      //   .skip(skipLikedRecipes)
+      //   .limit(limitLikedRecipes)
+      //   .lean(),
+      // Follow.findOne({
+      //   follower: userId,
+      //   following: targetUserId,
+      // }).lean(),
     ]);
 
+    const follow = await Follow.findOne({
+      follower: userId,
+      following: targetUserId,
+    });
+    if (follow) {
+      isfollowing = "following";
+    } else {
+      isfollowing = "not_following";
+    }
     if (!targetUser) {
       return sendErrorResponse(res, 404, "Target user not found", "not_found");
     }
@@ -92,8 +101,8 @@ const getProfile = async (req, res) => {
     if (!currentUser) {
       return sendErrorResponse(res, 404, "Current user not found", "not_found");
     }
-    if(userId === targetUserId){
-      isfollowing = true;
+    if (userId === targetUserId) {
+      isfollowing = "my_Profile";
     }
 
     const likedRecipeIds = new Set(
@@ -105,31 +114,31 @@ const getProfile = async (req, res) => {
       isLiked: likedRecipeIds.has(recipe._id.toString()),
     }));
 
-    const formattedLikedRecipes = userLikedRecipes.map((like) => ({
-      ...like.recipe,
-      isLiked: likedRecipeIds.has(like.recipe._id.toString()),
-    }));
-  
+    // const formattedLikedRecipes = userLikedRecipes.map((like) => ({
+    //   ...like.recipe,
+    //   isLiked: likedRecipeIds.has(like.recipe._id.toString()),
+    // }));
+
     const profileData = {
       username: targetUser.username,
       email: targetUser.email,
       profilePicture: targetUser.profilePicture,
       followersCount: targetUser.followersCount,
       followingCount: targetUser.followingCount,
-      isFollowing: isfollowing ? true : false,
-      likesCount: currentUserLikes.length,
+      isFollowing: isfollowing,
+      // likesCount: currentUserLikes.length,
       recipes: {
         totalRecipes: totalUserRecipes,
         currentPage: pageRecipes,
         totalPages: Math.ceil(totalUserRecipes / limitRecipes),
         recipes: formattedRecipes,
       },
-      likedRecipes: {
-        totalLikedRecipes: totalUserLikedRecipes,
-        currentPage: pageLikedRecipes,
-        totalPages: Math.ceil(totalUserLikedRecipes / limitLikedRecipes),
-        recipes: formattedLikedRecipes,
-      },
+      // likedRecipes: {
+      //   totalLikedRecipes: totalUserLikedRecipes,
+      //   currentPage: pageLikedRecipes,
+      //   totalPages: Math.ceil(totalUserLikedRecipes / limitLikedRecipes),
+      //   recipes: formattedLikedRecipes,
+      // },
     };
 
     res.status(200).json({
