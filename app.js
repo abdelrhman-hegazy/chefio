@@ -9,8 +9,8 @@ const compression = require("compression");
 
 // routers
 const authRouter = require("./routers/authRouter");
-const userRouter = require("./routers/userRoutes");
-const recipeRouter = require("./routers/recipeRoutes");
+const userRouter = require("./routers/profileRouter");
+const recipeRouter = require("./routers/recipeRouter");
 const likeRouter = require("./routers/likeRouter");
 const followRouter = require("./routers/followRouter");
 const connectDB = require("./db/connect");
@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname,"public"))); // for serving static files
+app.use(express.static(path.join(__dirname, "public"))); // for serving static files
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);

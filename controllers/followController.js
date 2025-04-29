@@ -1,5 +1,5 @@
 const Follow = require("../models/FollowModel");
-const User = require("../models/UserModel");
+const User = require("../models/ProfileModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
 // Follow a chef

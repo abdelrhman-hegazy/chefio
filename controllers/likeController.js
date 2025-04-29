@@ -1,6 +1,6 @@
 const Like = require("../models/LikeModel");
 const Resipe = require("../models/RecipeModel");
-const User = require("../models/UserModel");
+const User = require("../models/ProfileModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
 // @desc    Like or unlike a recipe

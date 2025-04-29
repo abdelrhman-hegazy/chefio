@@ -8,7 +8,7 @@ const {
   acceptEmailSchema,
   acceptResetPasswordSchema,
 } = require("../middlewares/validator");
-const User = require("../models/UserModel");
+const User = require("../models/ProfileModel");
 const RefreshToken = require("../models/RefreshTokens");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
@@ -573,7 +573,7 @@ const refreshAccessToken = async (req, res) => {
     const refreshToken = isMobileClient
       ? req.body.refreshToken.split(" ")[1]
       : req.cookies.Authorization.split(" ")[1];
-  
+
     if (!refreshToken) {
       return sendErrorResponse(
         res,
@@ -639,12 +639,7 @@ const refreshAccessToken = async (req, res) => {
     );
   } catch (error) {
     console.log("Error in refreshToken", error);
-    return sendErrorResponse(
-      res,
-      500,
-      error.message,
-      "internal_server_error"
-    );
+    return sendErrorResponse(res, 500, error.message, "internal_server_error");
   }
 };
 // google signin

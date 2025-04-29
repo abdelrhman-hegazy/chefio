@@ -5,7 +5,7 @@ const {
   recipeSchema,
   recipeUpdateSchema,
 } = require("../middlewares/validator");
-const User = require("../models/UserModel");
+const User = require("../models/ProfileModel");
 const Category = require("../models/CategoryModel");
 const Like = require("../models/LikeModel");
 const { default: mongoose } = require("mongoose");
@@ -54,8 +54,7 @@ const createRecipe = async (req, res) => {
         "bad_request"
       );
     }
-    
-    
+
     ingredients = JSON.parse(ingredients);
     steps = JSON.parse(steps);
 
@@ -237,7 +236,7 @@ const getRecipeById = async (req, res) => {
     });
 
     let isLiked = likedRecipe.length > 0 ? true : false;
-    
+
     const updatRecipe = {
       ...recipe._doc,
       isLiked: isLiked,
