@@ -92,6 +92,9 @@ const getProfile = async (req, res) => {
     if (!currentUser) {
       return sendErrorResponse(res, 404, "Current user not found", "not_found");
     }
+    if(userId === targetUserId){
+      isfollowing = true;
+    }
 
     const likedRecipeIds = new Set(
       currentUserLikes.map((like) => like.recipe.toString())
@@ -106,9 +109,9 @@ const getProfile = async (req, res) => {
       ...like.recipe,
       isLiked: likedRecipeIds.has(like.recipe._id.toString()),
     }));
-
+  
     const profileData = {
-      name: targetUser.name,
+      username: targetUser.username,
       email: targetUser.email,
       profilePicture: targetUser.profilePicture,
       followersCount: targetUser.followersCount,
