@@ -54,6 +54,7 @@ const getProfile = async (req, res) => {
       userRecipes,
       totalUserLikedRecipes,
       userLikedRecipes,
+      isfollowing,
     ] = await Promise.all([
       User.findById(targetUserId).select("-password -__v").lean(),
       User.findById(userId).lean(),
@@ -78,6 +79,10 @@ const getProfile = async (req, res) => {
         .skip(skipLikedRecipes)
         .limit(limitLikedRecipes)
         .lean(),
+      Follow.findOne({
+        follower: userId,
+        following: targetUserId,
+      }).lean(),
     ]);
 
     if (!targetUser) {
@@ -108,6 +113,7 @@ const getProfile = async (req, res) => {
       profilePicture: targetUser.profilePicture,
       followersCount: targetUser.followersCount,
       followingCount: targetUser.followingCount,
+      isFollowing: isfollowing ? true : false,
       likesCount: currentUserLikes.length,
       recipes: {
         totalRecipes: totalUserRecipes,
