@@ -232,19 +232,29 @@ const getLikedRecipesProfile = async (req, res) => {
 };
 
 // endpoint edit profile
-const editProfile = async (req, res)=>{
+const editProfile = async (req, res) => {
   const { userId } = req.user;
-  const { username} = req.body;
-  const profilePicture = req.file ? req.file.path : null;
+  const { username } = req.body;
   try {
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { username, profilePicture },
-      { new: true }
-    ).select("username profilePicture");
-
-    if (!updatedUser) {
+    const user = await User.findById(userId).select("username profilePicture");
+    if (!user) {
       return sendErrorResponse(res, 404, "User not found", "not_found");
+    }
+    let profilePicture;
+    if (!req.file || !req.file.path) {
+      profilePicture = user.profilePicture; // No new profile picture provided
+    } else {
+      profilePicture = req.file.path; // Check if a new profile picture is provided
+    }
+    let updatedUser; // Default to the current user
+    if (username || req.file) {
+      updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { username, profilePicture },
+        { new: true }
+      ).select("username profilePicture");
+    } else {
+      updatedUser = user;
     }
 
     res.status(200).json({
@@ -256,7 +266,7 @@ const editProfile = async (req, res)=>{
     console.error("Error updating profile:", error);
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
-}
+};
 module.exports = {
   uploadProfilePicture,
   getProfile,
