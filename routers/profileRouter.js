@@ -4,6 +4,7 @@ const {
   getProfile,
   getRecipesProfile,
   getLikedRecipesProfile,
+  editProfile,
 } = require("../controllers/profileController");
 const identifier = require("../middlewares/identification");
 // const upload = require('../middlewares/upload');
@@ -16,7 +17,19 @@ router.patch(
   uploadMulter("profilePicture"),
   uploadProfilePicture
 );
+router.patch(
+  "/edit-profile",
+  identifier,
+  uploadMulter("profilePicture"),
+  editProfile
+);
 router.get("/get-profile/:userId", identifier, getProfile);
 router.get("/get-recipes-profile/:userId", identifier, getRecipesProfile);
-router.get("/get-liked-recipes-profile/:userId", identifier, getLikedRecipesProfile);
+router.get(
+  "/get-liked-recipes-profile/:userId",
+  identifier,
+  getLikedRecipesProfile
+);
+
+
 module.exports = router;

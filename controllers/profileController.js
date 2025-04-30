@@ -5,6 +5,7 @@ const Like = require("../models/LikeModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 const cookieParser = require("cookie-parser");
 
+//endpoint to upload a profile picture
 const uploadProfilePicture = async (req, res) => {
   const { userId } = req.user;
 
@@ -31,6 +32,7 @@ const uploadProfilePicture = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+// endpoint to get the profile of a user
 const getProfile = async (req, res) => {
   try {
     const { userId } = req.user;
@@ -52,9 +54,6 @@ const getProfile = async (req, res) => {
       currentUserLikes,
       totalUserRecipes,
       userRecipes,
-      // totalUserLikedRecipes,
-      // userLikedRecipes,
-      // isfollowing,
     ] = await Promise.all([
       User.findById(targetUserId).select("-password -__v").lean(),
       User.findById(userId).lean(),
@@ -67,22 +66,6 @@ const getProfile = async (req, res) => {
         .skip(skipRecipes)
         .limit(limitRecipes)
         .lean(),
-      // Like.countDocuments({ user: targetUserId }),
-      // Like.find({ user: targetUserId })
-      //   .select("-_id -__v -user -createdAt -updatedAt")
-      //   .populate({
-      //     path: "recipe",
-      //     select: "recipePicture foodName cookingDuration category",
-      //     populate: { path: "category", select: "name" },
-      //   })
-      //   .sort({ createdAt: -1 })
-      //   .skip(skipLikedRecipes)
-      //   .limit(limitLikedRecipes)
-      //   .lean(),
-      // Follow.findOne({
-      //   follower: userId,
-      //   following: targetUserId,
-      // }).lean(),
     ]);
 
     const follow = await Follow.findOne({
@@ -114,11 +97,6 @@ const getProfile = async (req, res) => {
       isLiked: likedRecipeIds.has(recipe._id.toString()),
     }));
 
-    // const formattedLikedRecipes = userLikedRecipes.map((like) => ({
-    //   ...like.recipe,
-    //   isLiked: likedRecipeIds.has(like.recipe._id.toString()),
-    // }));
-
     const profileData = {
       username: targetUser.username,
       email: targetUser.email,
@@ -126,19 +104,12 @@ const getProfile = async (req, res) => {
       followersCount: targetUser.followersCount,
       followingCount: targetUser.followingCount,
       isFollowing: isfollowing,
-      // likesCount: currentUserLikes.length,
       recipes: {
         totalRecipes: totalUserRecipes,
         currentPage: pageRecipes,
         totalPages: Math.ceil(totalUserRecipes / limitRecipes),
         recipes: formattedRecipes,
       },
-      // likedRecipes: {
-      //   totalLikedRecipes: totalUserLikedRecipes,
-      //   currentPage: pageLikedRecipes,
-      //   totalPages: Math.ceil(totalUserLikedRecipes / limitLikedRecipes),
-      //   recipes: formattedLikedRecipes,
-      // },
     };
 
     res.status(200).json({
@@ -151,7 +122,7 @@ const getProfile = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
-
+// endpoint to get the liked recipes of a user
 const getRecipesProfile = async (req, res) => {
   const { userId } = req.user;
   const { userId: targetUserId } = req.params;
@@ -204,7 +175,7 @@ const getRecipesProfile = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
-
+//endpoint to get the liked recipes of a user
 const getLikedRecipesProfile = async (req, res) => {
   const { userId } = req.user;
   const { userId: targetUserId } = req.params;
@@ -260,9 +231,36 @@ const getLikedRecipesProfile = async (req, res) => {
   }
 };
 
+// endpoint edit profile
+const editProfile = async (req, res)=>{
+  const { userId } = req.user;
+  const { username} = req.body;
+  const profilePicture = req.file ? req.file.path : null;
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { username, profilePicture },
+      { new: true }
+    ).select("username profilePicture");
+
+    if (!updatedUser) {
+      return sendErrorResponse(res, 404, "User not found", "not_found");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully!",
+      profile: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return sendErrorResponse(res, 500, error.message, "server_error");
+  }
+}
 module.exports = {
   uploadProfilePicture,
   getProfile,
   getRecipesProfile,
   getLikedRecipesProfile,
+  editProfile,
 };

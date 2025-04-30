@@ -2,7 +2,7 @@ const Follow = require("../models/FollowModel");
 const User = require("../models/ProfileModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
-// Follow a chef
+// endpoint to follow or unfollow a chef
 const followChef = async (req, res) => {
   try {
     const { userId } = req.user;
@@ -55,7 +55,7 @@ const followChef = async (req, res) => {
     console.log(error);
   }
 };
-// get followers
+// endpoint to get the followers of a chef
 const getFollowers = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -90,7 +90,7 @@ const getFollowers = async (req, res) => {
     console.log(error);
   }
 };
-// get following
+// endpoint to get the following of a chef
 const getFollowing = async (req, res) => {
   try {
     const { userId } = req.user;
