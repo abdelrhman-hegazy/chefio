@@ -3,3 +3,4 @@
 .vercel
 scripts
 .vscode
+.serviceAccountKey.json

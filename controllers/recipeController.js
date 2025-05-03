@@ -5,7 +5,7 @@ const {
   recipeSchema,
   recipeUpdateSchema,
 } = require("../middlewares/validator");
-const User = require("../models/ProfileModel");
+const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
 const Like = require("../models/LikeModel");
 const { default: mongoose } = require("mongoose");

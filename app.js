@@ -13,6 +13,9 @@ const userRouter = require("./routers/profileRouter");
 const recipeRouter = require("./routers/recipeRouter");
 const likeRouter = require("./routers/likeRouter");
 const followRouter = require("./routers/followRouter");
+const notificationRouter = require("./routers/notificationRouter");
+const deviceTokenRouter = require("./routers/deviceTokenRouter")
+
 const connectDB = require("./db/connect");
 const app = express();
 
@@ -30,6 +33,8 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/recipe", recipeRouter);
 app.use("/api/v1/recipe/likes", likeRouter);
 app.use("/api/v1/chef/follow", followRouter);
+app.use("/api/v1/notification", notificationRouter);
+app.use("/api/v1/device-token", deviceTokenRouter);
 
 app.get("/api/v1/profile", (req, res) => {
   res.send("welcome in chefio profile");

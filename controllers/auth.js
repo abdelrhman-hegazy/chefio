@@ -8,7 +8,7 @@ const {
   acceptEmailSchema,
   acceptResetPasswordSchema,
 } = require("../middlewares/validator");
-const User = require("../models/ProfileModel");
+const User = require("../models/UserModel");
 const RefreshToken = require("../models/RefreshTokens");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");

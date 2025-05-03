@@ -1,5 +1,5 @@
 const Follow = require("../models/FollowModel");
-const User = require("../models/ProfileModel");
+const User = require("../models/UserModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
 
 // endpoint to follow or unfollow a chef

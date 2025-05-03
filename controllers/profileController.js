@@ -1,4 +1,4 @@
-const User = require("../models/ProfileModel");
+const User = require("../models/UserModel");
 const Follow = require("../models/FollowModel");
 const Recipe = require("../models/RecipeModel");
 const Like = require("../models/LikeModel");
