@@ -3,4 +3,4 @@
 .vercel
 scripts
 .vscode
-.serviceAccountKey.json
+.serviceAccountKey.jsonconfig/firebase/firebase-adminsdk.json
