@@ -14,7 +14,7 @@ const recipeRouter = require("./routers/recipeRouter");
 const likeRouter = require("./routers/likeRouter");
 const followRouter = require("./routers/followRouter");
 const notificationRouter = require("./routers/notificationRouter");
-const deviceTokenRouter = require("./routers/deviceTokenRouter")
+const deviceTokenRouter = require("./routers/deviceTokenRouter");
 
 const connectDB = require("./db/connect");
 const app = express();
@@ -25,7 +25,6 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(express.static(path.join(__dirname, "public"))); // for serving static files
 
 app.use("/api/v1/auth", authRouter);

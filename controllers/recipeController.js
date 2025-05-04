@@ -252,7 +252,6 @@ const getRecipeById = async (req, res) => {
 const updateRecipe = async (req, res) => {
   const recipeId = req.params.id;
   const { userId } = req.user;
-
   const exisitingRecipe = await Recipe.findById(recipeId);
   if (!exisitingRecipe) {
     return sendErrorResponse(res, 404, "Recipe not found", "not_found");
@@ -265,7 +264,6 @@ const updateRecipe = async (req, res) => {
       "forbidden"
     );
   }
-
   let {
     foodName,
     description,
@@ -274,7 +272,6 @@ const updateRecipe = async (req, res) => {
     steps,
     categoryId,
   } = req.body;
-
   try {
     if (!mongoose.Types.ObjectId.isValid(recipeId)) {
       return sendErrorResponse(res, 400, "Invalid recipe id", "bad_request");
@@ -319,6 +316,8 @@ const updateRecipe = async (req, res) => {
       },
       { new: true }
     );
+    console.log(req.headers['content-type']);
+    
     return res.status(200).json({
       success: true,
       message: "Recipe updated successfully",

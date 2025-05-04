@@ -21,7 +21,12 @@ router.post(
 );
 router.get("/get-recipes", identifier, getRecipe);
 router.get("/get-recipe/:id", identifier, getRecipeById);
-router.patch("/update-recipe/:id", identifier, updateRecipe);
+router.patch(
+  "/update-recipe/:id",
+  identifier,
+  uploadMulter("recipePicture"),
+  updateRecipe
+);
 router.delete("/delete-recipe/:id", identifier, deleteRecipe);
 router.patch("/like-recipe/:id", identifier, likeRecipe);
 module.exports = router;
