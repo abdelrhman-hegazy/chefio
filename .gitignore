@@ -5,3 +5,4 @@ scripts
 .vscode
 .serviceAccountKey.jsonconfig/firebase/firebase-adminsdk.json
 config/firebase/firebase-adminsdk.json
+myenv
