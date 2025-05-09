@@ -38,15 +38,10 @@ const getProfile = async (req, res) => {
     const { userId } = req.user;
     const { userId: targetUserId } = req.params;
 
-    // pagination for recipes
+    // pagination setup
     const pageRecipes = parseInt(req.query.pageRecipes) || 1;
     const limitRecipes = parseInt(req.query.limitRecipes) || 10;
     const skipRecipes = (pageRecipes - 1) * limitRecipes;
-
-    // pagination for likedRecipes
-    const pageLikedRecipes = parseInt(req.query.pageLikedRecipes) || 1;
-    const limitLikedRecipes = parseInt(req.query.limitLikedRecipes) || 10;
-    const skipLikedRecipes = (pageLikedRecipes - 1) * limitLikedRecipes;
 
     const [
       targetUser,
@@ -54,6 +49,7 @@ const getProfile = async (req, res) => {
       currentUserLikes,
       totalUserRecipes,
       userRecipes,
+      followDoc,
     ] = await Promise.all([
       User.findById(targetUserId).select("-password -__v").lean(),
       User.findById(userId).lean(),
@@ -66,17 +62,9 @@ const getProfile = async (req, res) => {
         .skip(skipRecipes)
         .limit(limitRecipes)
         .lean(),
+      Follow.findOne({ follower: userId, following: targetUserId }),
     ]);
 
-    const follow = await Follow.findOne({
-      follower: userId,
-      following: targetUserId,
-    });
-    if (follow) {
-      isfollowing = "following";
-    } else {
-      isfollowing = "not_following";
-    }
     if (!targetUser) {
       return sendErrorResponse(res, 404, "Target user not found", "not_found");
     }
@@ -84,8 +72,12 @@ const getProfile = async (req, res) => {
     if (!currentUser) {
       return sendErrorResponse(res, 404, "Current user not found", "not_found");
     }
+
+    let isFollowing = "not_following";
     if (userId === targetUserId) {
-      isfollowing = "my_Profile";
+      isFollowing = "my_Profile";
+    } else if (followDoc) {
+      isFollowing = "following";
     }
 
     const likedRecipeIds = new Set(
@@ -93,7 +85,11 @@ const getProfile = async (req, res) => {
     );
 
     const formattedRecipes = userRecipes.map((recipe) => ({
-      ...recipe,
+      _id: recipe._id,
+      recipePicture: recipe.recipePicture,
+      foodName: recipe.foodName,
+      cookingDuration: recipe.cookingDuration,
+      category: recipe.category?.name || null,
       isLiked: likedRecipeIds.has(recipe._id.toString()),
     }));
 
@@ -103,16 +99,16 @@ const getProfile = async (req, res) => {
       profilePicture: targetUser.profilePicture,
       followersCount: targetUser.followersCount,
       followingCount: targetUser.followingCount,
-      isFollowing: isfollowing,
+      isFollowing,
       recipes: {
         totalRecipes: totalUserRecipes,
         currentPage: pageRecipes,
         totalPages: Math.ceil(totalUserRecipes / limitRecipes),
-        recipes: formattedRecipes,
+        data: formattedRecipes,
       },
     };
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "User profile fetched successfully!",
       profile: profileData,
@@ -122,15 +118,15 @@ const getProfile = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+
 // endpoint to get the liked recipes of a user
 const getRecipesProfile = async (req, res) => {
   const { userId } = req.user;
   const { userId: targetUserId } = req.params;
 
-  // pagination for recipes
-  const pageRecipes = parseInt(req.query.pageRecipes) || 1;
-  const limitRecipes = parseInt(req.query.limitRecipes) || 10;
-  const skipRecipes = (pageRecipes - 1) * limitRecipes;
+  const page = parseInt(req.query.pageRecipes) || 1;
+  const limit = parseInt(req.query.limitRecipes) || 10;
+  const skip = (page - 1) * limit;
 
   try {
     const targetUser = await User.findById(targetUserId).lean();
@@ -138,36 +134,47 @@ const getRecipesProfile = async (req, res) => {
       return sendErrorResponse(res, 404, "Target user not found", "not_found");
     }
 
-    const totalUserRecipes = await Recipe.countDocuments({
+    const totalRecipes = await Recipe.countDocuments({
       createdBy: targetUserId,
     });
-    const userRecipes = await Recipe.find({ createdBy: targetUserId })
-      .select("recipePicture foodName cookingDuration category")
-      .populate("category", "name")
+
+    const recipes = await Recipe.find({ createdBy: targetUserId })
+      .select("recipePicture foodName cookingDuration category createdBy")
+      .populate([
+        { path: "category", select: "name" },
+        { path: "createdBy", select: "username profilePicture" },
+      ])
       .sort({ createdAt: -1 })
-      .skip(skipRecipes)
-      .limit(limitRecipes)
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    const currentuserLikes = await Like.find({ user: userId })
-      .select("recipe")
-      .lean();
+    const userLikes = await Like.find({ user: userId }).select("recipe").lean();
+    const likedIds = new Set(userLikes.map((like) => like.recipe.toString()));
 
-    const likedRecipeIds = new Set(
-      currentuserLikes.map((like) => like.recipe.toString())
-    );
-    const formattedRecipes = userRecipes.map((recipe) => ({
-      ...recipe,
-      isLiked: likedRecipeIds.has(recipe._id.toString()),
+    const formatted = recipes.map((recipe) => ({
+      _id: recipe._id,
+      recipePicture: recipe.recipePicture,
+      foodName: recipe.foodName,
+      cookingDuration: recipe.cookingDuration,
+      category: recipe.category?.name || null,
+      createdBy: recipe.createdBy
+        ? {
+            username: recipe.createdBy.username,
+            profilePicture: recipe.createdBy.profilePicture,
+          }
+        : null,
+      isLiked: likedIds.has(recipe._id.toString()),
     }));
-    res.status(200).json({
+
+    return res.status(200).json({
       success: true,
       message: "User recipes fetched successfully!",
       recipes: {
-        totalRecipes: totalUserRecipes,
-        currentPage: pageRecipes,
-        totalPages: Math.ceil(totalUserRecipes / limitRecipes),
-        recipes: formattedRecipes,
+        totalRecipes,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecipes / limit),
+        data: formatted,
       },
     });
   } catch (error) {
@@ -175,15 +182,15 @@ const getRecipesProfile = async (req, res) => {
     return sendErrorResponse(res, 500, error.message, "server_error");
   }
 };
+
 //endpoint to get the liked recipes of a user
 const getLikedRecipesProfile = async (req, res) => {
   const { userId } = req.user;
   const { userId: targetUserId } = req.params;
 
-  // pagination for likedRecipes
-  const pageLikedRecipes = parseInt(req.query.pageLikedRecipes) || 1;
-  const limitLikedRecipes = parseInt(req.query.limitLikedRecipes) || 10;
-  const skipLikedRecipes = (pageLikedRecipes - 1) * limitLikedRecipes;
+  const page = parseInt(req.query.pageLikedRecipes) || 1;
+  const limit = parseInt(req.query.limitLikedRecipes) || 10;
+  const skip = (page - 1) * limit;
 
   try {
     const targetUser = await User.findById(targetUserId).lean();
@@ -191,43 +198,53 @@ const getLikedRecipesProfile = async (req, res) => {
       return sendErrorResponse(res, 404, "Target user not found", "not_found");
     }
 
-    const totalUserLikedRecipes = await Like.countDocuments({
-      user: targetUserId,
-    });
-    const userLikedRecipes = await Like.find({ user: targetUserId })
-      .select("-_id -__v -user -createdAt -updatedAt")
+    const totalLiked = await Like.countDocuments({ user: targetUserId });
+
+    const likedRecipes = await Like.find({ user: targetUserId })
+      .select("recipe")
       .populate({
         path: "recipe",
-        select: "recipePicture foodName cookingDuration category ",
-        populate: { path: "category", select: "name" },
-      })
-      .populate({
-        path: "recipe",
-        select: "createdBy",
-        populate: { path: "createdBy", select: "username profilePicture" },
+        select: "recipePicture foodName cookingDuration category createdBy",
+        populate: [
+          { path: "category", select: "name" },
+          { path: "createdBy", select: "username profilePicture" },
+        ],
       })
       .sort({ createdAt: -1 })
-      .skip(skipLikedRecipes)
-      .limit(limitLikedRecipes)
+      .skip(skip)
+      .limit(limit)
       .lean();
-    const currentuserLikes = await Like.find({ user: userId })
+
+    const currentUserLikes = await Like.find({ user: userId })
       .select("recipe")
       .lean();
     const likedRecipeIds = new Set(
-      currentuserLikes.map((like) => like.recipe.toString())
+      currentUserLikes.map((like) => like.recipe.toString())
     );
-    const formattedLikedRecipes = userLikedRecipes.map((like) => ({
-      ...like.recipe,
-      isLiked: likedRecipeIds.has(like.recipe._id.toString()),
-    }));
-    res.status(200).json({
+
+    const formattedRecipes = likedRecipes
+      .map((like) => like.recipe)
+      .filter((recipe) => recipe)
+      .map((recipe) => ({
+        ...recipe,
+        category: recipe.category?.name || null,
+        createdBy: recipe.createdBy
+          ? {
+              username: recipe.createdBy.username,
+              profilePicture: recipe.createdBy.profilePicture,
+            }
+          : null,
+        isLiked: likedRecipeIds.has(recipe._id.toString()),
+      }));
+
+    return res.status(200).json({
       success: true,
       message: "User liked recipes fetched successfully!",
       recipes: {
-        totalLikedRecipes: totalUserLikedRecipes,
-        currentPage: pageLikedRecipes,
-        totalPages: Math.ceil(totalUserLikedRecipes / limitLikedRecipes),
-        recipes: formattedLikedRecipes,
+        totalLikedRecipes: totalLiked,
+        currentPage: page,
+        totalPages: Math.ceil(totalLiked / limit),
+        data: formattedRecipes,
       },
     });
   } catch (error) {
