@@ -94,6 +94,7 @@ const getProfile = async (req, res) => {
     }));
 
     const profileData = {
+      _id: targetUser._id,
       username: targetUser.username,
       email: targetUser.email,
       profilePicture: targetUser.profilePicture,
@@ -142,7 +143,7 @@ const getRecipesProfile = async (req, res) => {
       .select("recipePicture foodName cookingDuration category createdBy")
       .populate([
         { path: "category", select: "name" },
-        { path: "createdBy", select: "username profilePicture" },
+        { path: "createdBy", select: "_id username profilePicture" },
       ])
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -160,6 +161,7 @@ const getRecipesProfile = async (req, res) => {
       category: recipe.category?.name || null,
       createdBy: recipe.createdBy
         ? {
+            _id: recipe.createdBy._id,
             username: recipe.createdBy.username,
             profilePicture: recipe.createdBy.profilePicture,
           }
@@ -207,7 +209,7 @@ const getLikedRecipesProfile = async (req, res) => {
         select: "recipePicture foodName cookingDuration category createdBy",
         populate: [
           { path: "category", select: "name" },
-          { path: "createdBy", select: "username profilePicture" },
+          { path: "createdBy", select: "_id username profilePicture" },
         ],
       })
       .sort({ createdAt: -1 })
@@ -230,6 +232,7 @@ const getLikedRecipesProfile = async (req, res) => {
         category: recipe.category?.name || null,
         createdBy: recipe.createdBy
           ? {
+              _id: recipe.createdBy._id,
               username: recipe.createdBy.username,
               profilePicture: recipe.createdBy.profilePicture,
             }
