@@ -89,7 +89,7 @@ const getProfile = async (req, res) => {
       recipePicture: recipe.recipePicture,
       foodName: recipe.foodName,
       cookingDuration: recipe.cookingDuration,
-      category: recipe.category?.name || null,
+      category: recipe.category,
       isLiked: likedRecipeIds.has(recipe._id.toString()),
     }));
 
@@ -158,7 +158,7 @@ const getRecipesProfile = async (req, res) => {
       recipePicture: recipe.recipePicture,
       foodName: recipe.foodName,
       cookingDuration: recipe.cookingDuration,
-      category: recipe.category?.name || null,
+      category: recipe.category,
       createdBy: recipe.createdBy
         ? {
             _id: recipe.createdBy._id,
@@ -229,7 +229,7 @@ const getLikedRecipesProfile = async (req, res) => {
       .filter((recipe) => recipe)
       .map((recipe) => ({
         ...recipe,
-        category: recipe.category?.name || null,
+        category: recipe.category,
         createdBy: recipe.createdBy
           ? {
               _id: recipe.createdBy._id,
