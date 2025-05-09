@@ -198,8 +198,9 @@ const getLikedRecipesProfile = async (req, res) => {
       .select("-_id -__v -user -createdAt -updatedAt")
       .populate({
         path: "recipe",
-        select: "recipePicture foodName cookingDuration category",
+        select: "recipePicture foodName cookingDuration category createdBy",
         populate: { path: "category", select: "name" },
+        populate: { path: "createdBy", select: "username profilePicture" },
       })
       .sort({ createdAt: -1 })
       .skip(skipLikedRecipes)
