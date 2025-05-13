@@ -220,12 +220,21 @@ const sendVerificationCode = async (req, res) => {
     }
 
     let info = await transport.sendMail({
-      from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
+      from: `"Chefio Support" <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
       to: existingUser.email,
       subject: "Verification Code",
-      html: `<h1>${codeValue}</h1>`,
+      html: `
+      <div style="font-family: sans-serif; line-height: 1.5">
+        <h2>Welcome to Chefio 👨‍🍳</h2>
+        <p>Your verification code is:</p>
+        <h1 style="color: #4caf50;">${codeValue}</h1>
+        <p>This code will expire in 5 minutes.</p>
+        <p>If you didn’t request this, please ignore this email.</p>
+        <br>
+        <small>Chefio Team • Do not reply to this email</small>
+      </div>
+    `,
     });
-
     if (
       info.accepted &&
       info.accepted.length > 0 &&
@@ -323,6 +332,14 @@ const verifyVerificationCode = async (req, res) => {
         success: true,
         message: "your account has been verified!",
       });
+    }
+    else if (hashedCodeValue !== existingUser.verificationCode) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Invalid code!",
+        "invalid_code"
+      );
     }
     return res
       .status(401)

@@ -22,11 +22,19 @@ const followChef = async (req, res) => {
       return sendErrorResponse(res, 404, "user not found", "not_found");
     }
     const existingFollow = await Follow.findOne({
-      follower: userId,
-      following: targetUserId,
+      following: userId,
+      follower: targetUserId,
     });
     if (existingFollow) {
       await Follow.findByIdAndDelete(existingFollow._id);
+      if (targetUser.followersCount <= 0 && currentUser.followingCount <= 0) {
+        return sendErrorResponse(
+          res,
+          400,
+          "you can't unfollow this chef",
+          "invalid_request"
+        );
+      }
       targetUser.followersCount -= 1;
       currentUser.followingCount -= 1;
       await targetUser.save();
@@ -38,8 +46,8 @@ const followChef = async (req, res) => {
       });
     }
     const follow = new Follow({
-      follower: userId,
-      following: targetUserId,
+      following: userId,
+      follower: targetUserId,
     });
     await follow.save();
     targetUser.followersCount += 1;
@@ -71,12 +79,13 @@ const getFollowers = async (req, res) => {
     });
     isFollowed = !!isFollowing;
 
-    const followers = await Follow.find({ following: userId })
-      .populate("follower", "username profilePicture")
+    const followers = await Follow.find({ follower: targetUser })
+      .select("following")
+      .populate("following", "username profilePicture")
       .exec();
     const updateFollowers = followers.map((f) => {
       const follower = {
-        ...f.follower._doc,
+        ...f.following._doc,
         isFollowed: isFollowed,
       };
       return follower;
@@ -105,18 +114,22 @@ const getFollowing = async (req, res) => {
     });
 
     let isFollowed = !!isFollowing;
-    const following = await Follow.find({ follower: userId })
-      .populate("following", "username profilePicture")
+    const following = await Follow.find({ following: targetUserId })
+      .select("follower")
+      .populate({
+        path: "follower",
+        select: "username profilePicture",
+        model: "User",
+      })
       .exec();
 
     const updateFollowing = following.map((f) => {
       const following = {
-        ...f.following._doc,
+        ...f.follower._doc,
         isFollowed: isFollowed,
       };
       return following;
     });
-
     res.status(200).json({
       success: true,
       following: updateFollowing,
