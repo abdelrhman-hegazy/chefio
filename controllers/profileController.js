@@ -62,7 +62,7 @@ const getProfile = async (req, res) => {
         .skip(skipRecipes)
         .limit(limitRecipes)
         .lean(),
-      Follow.findOne({ follower: userId, following: targetUserId }),
+      Follow.findOne({ follower: targetUserId, following: userId }).lean(),
     ]);
 
     if (!targetUser) {

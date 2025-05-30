@@ -7,10 +7,6 @@ const { sendErrorResponse } = require("../utils/errorHandler");
 // @route   POST /api/v1/recipe/likes/:recipeId
 // @access  Private
 // @method  POST
-// @param   {string} recipeId - The ID of the recipe to like or unlike
-// @returns {object} - A success message and the updated likes count
-// @throws  {object} - An error message if the recipe or user is not found, or if there is a server error
-// @throws  {object} - A success message and the updated likes count if the recipe is liked or unliked successfully
 const like = async (req, res) => {
   try {
     const { userId } = req.user;

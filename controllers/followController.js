@@ -68,31 +68,41 @@ const getFollowers = async (req, res) => {
   try {
     const { userId } = req.params;
     const { userId: currentUserId } = req.user;
-    let isFollowed = false;
+
     const targetUser = await User.findById(userId);
     if (!targetUser) {
       return sendErrorResponse(res, 404, "user not found", "not_found");
     }
-    const isFollowing = await Follow.findOne({
-      follower: currentUserId,
-      following: userId,
-    });
-    isFollowed = !!isFollowing;
 
-    const followers = await Follow.find({ follower: targetUser })
+    // Find users who follow the target user
+    const followers = await Follow.find({ follower: userId })
       .select("following")
       .populate("following", "username profilePicture")
       .exec();
-    const updateFollowers = followers.map((f) => {
-      const follower = {
-        ...f.following._doc,
-        isFollowed: isFollowed,
-      };
-      return follower;
-    });
+
+    // Process follower data with isFollowed flag
+    const processedFollowers = await Promise.all(
+      followers.map(async (f) => {
+        let isFollowing;
+        if (f.following._id.toString() === currentUserId) {
+          isFollowing = false;
+        } else {
+          isFollowing = await Follow.findOne({
+            follower: f.following._id,
+            following: currentUserId,
+          });
+          isFollowing = !!isFollowing;
+        }
+        // Return follower with isFollowed flag
+        return {
+          ...f.following._doc,
+          isFollowed: isFollowing,
+        };
+      })
+    );
     res.status(200).json({
       success: true,
-      followers: updateFollowers,
+      followers: processedFollowers,
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
@@ -108,31 +118,26 @@ const getFollowing = async (req, res) => {
     if (!targetUser) {
       return sendErrorResponse(res, 404, "user not found", "not_found");
     }
-    const isFollowing = await Follow.findOne({
-      follower: userId,
-      following: targetUserId,
-    });
-
-    let isFollowed = !!isFollowing;
     const following = await Follow.find({ following: targetUserId })
       .select("follower")
-      .populate({
-        path: "follower",
-        select: "username profilePicture",
-        model: "User",
-      })
+      .populate("follower", "username profilePicture")
       .exec();
+    const processedFollowing = await Promise.all(
+      following.map(async (f) => {
+        let isFollowing = await Follow.findOne({
+          follower: f.follower._id,
+          following: userId,
+        });
 
-    const updateFollowing = following.map((f) => {
-      const following = {
-        ...f.follower._doc,
-        isFollowed: isFollowed,
-      };
-      return following;
-    });
+        return {
+          ...f.follower._doc,
+          isFollowed: !!isFollowing,
+        };
+      })
+    );
     res.status(200).json({
       success: true,
-      following: updateFollowing,
+      following: processedFollowing,
     });
   } catch (error) {
     sendErrorResponse(res, 500, error.message, "server_error");
