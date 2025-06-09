@@ -1,8 +1,9 @@
 const Like = require("../models/LikeModel");
-const Resipe = require("../models/RecipeModel");
+const Recipe = require("../models/RecipeModel");
 const User = require("../models/UserModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
-
+const {sendPushNotification} = require("../services/notificationService");
+const Notification = require("../models/NotificationModel");
 // @desc    Like or unlike a recipe
 // @route   POST /api/v1/recipe/likes/:recipeId
 // @access  Private
@@ -11,7 +12,7 @@ const like = async (req, res) => {
   try {
     const { userId } = req.user;
     const { recipeId } = req.params;
-    const recipe = await Resipe.findById(recipeId);
+    const recipe = await Recipe.findById(recipeId);
     if (!recipe) {
       return sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }
@@ -24,6 +25,13 @@ const like = async (req, res) => {
       await Like.deleteOne({ _id: existingLike.id });
       recipe.likesCount -= 1;
       await recipe.save();
+      //delete like in notification  
+      await Notification.deleteMany({
+        receiver: recipe.createdBy,
+        sender: userId,
+        type: "like",
+        recipeId: recipeId,
+      });
       return res.status(200).json({
         success: true,
         message: "Recipe unliked successfully",
@@ -34,6 +42,13 @@ const like = async (req, res) => {
       await newLike.save();
       recipe.likesCount += 1;
       await recipe.save();
+      //send notification
+      await sendPushNotification({
+        receiver: recipe.createdBy,
+        sender: userId,
+        type: "like",
+        recipeId: recipeId,
+      });
       return res.status(200).json({
         success: true,
         message: "Recipe liked successfully",
@@ -49,7 +64,7 @@ const like = async (req, res) => {
 const getLikes = async (req, res) => {
   try {
     const { recipeId } = req.params;
-    const recipe = await Resipe.findById(recipeId);
+    const recipe = await Recipe.findById(recipeId);
     if (!recipe) {
       return sendErrorResponse(res, 404, "Recipe not found", "not_found");
     }

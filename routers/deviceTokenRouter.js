@@ -6,7 +6,7 @@ const {
   removeDeviceTokenController,
 } = require("../controllers/deviceTokenController");
 
-router.post("/register-token", identifier, registerDeviceTokenController);
-router.delete("/remove-token", identifier, removeDeviceTokenController);
+router.post("/register", identifier, registerDeviceTokenController);
+router.delete("/device-tokens", identifier, removeDeviceTokenController);
 
 module.exports = router;

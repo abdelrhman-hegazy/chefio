@@ -1,8 +1,9 @@
 const notificationServices = require("../services/notificationService");
 const { sendErrorResponse } = require("../utils/errorHandler");
+
 const getNotifications = async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
-  const { userId } = req.params;
+  const { userId } = req.user;
   try {                                                 
     const notifications = await notificationServices.getUserNotification(
       userId,
@@ -29,7 +30,7 @@ const getNotifications = async (req, res) => {
 const markAsReadById = async (req, res) => {
   const { notificationId } = req.params;
   try {
-    const success = await notificationServices.markAsRead(notificationId);
+    const success = await notificationServices.markAsReadById(notificationId);
     if (!success) {
       return sendErrorResponse(
         res,
@@ -48,7 +49,7 @@ const markAsReadById = async (req, res) => {
 };
 
 const markAsReadAll = async (req, res) => {
-  const { userId } = req.params;
+  const { userId } = req.user;
   try {
     const success = await notificationServices.markAsReadAll(userId);
     if (!success) {

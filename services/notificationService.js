@@ -1,38 +1,43 @@
-const admin = require("firebase-admin");
+const admin = require("../config/firebase/firebase");
+const Notification = require("../models/NotificationModel");
 const DeviceToken = require("../models/DeviceTokenModel");
 const User = require("../models/UserModel");
-const Notification = require("../models/NotificationModel");
+const sendPushNotification = async ({
+  receiver,
+  sender,
+  type,
+  recipeId = null,
+}) => {
+  const notification = await Notification.create({
+    receiver,
+    sender,
+    type,
+    recipeId,
+  });
 
-const createNotification = async ({ receiver, sender, type, recipeId }) => {
-  const notification = new Notification({ receiver, sender, type, recipeId });
-  await notification.save();
-
-  const receiverTokens = await DeviceToken.find({ user: receiver });
+  const receiverTokens = await DeviceToken.find({ user: receiver }).select(
+    "token -_id"
+  );
   if (receiverTokens.length === 0) {
     return {
       succes: false,
       message: "No device tokens found for receiver",
     };
   }
+  const fcmTokens = receiverTokens.map((tk) => tk.token);
 
   const senderUser = await User.findById(sender).select(
     "username profilePicture"
   );
-  if (!senderUser) {
-    return {
-      success: false,
-      message: "Sender not found",
-    };
-  }
 
   const titleMap = {
     like: `${senderUser.username} liked your recipe`,
     follow: `${senderUser.username} started following you`,
     new_recipe: `${senderUser.username} sent you a new recipe`,
   };
-  const tokens = receiverTokens.map((tk) => tk.token);
 
-  const message = {
+  const response = await admin.messaging().sendEachForMulticast({
+    tokens: fcmTokens,
     notification: {
       title: titleMap[type] || "New Notification",
       body: titleMap[type] || "You have a new notification",
@@ -45,9 +50,7 @@ const createNotification = async ({ receiver, sender, type, recipeId }) => {
       senderProfilePicture: senderUser.profilePicture,
       click_action: "FLUTTER_NOTIFICATION_CLICK",
     },
-  };
-
-  const response = await admin.messaging().sendMulticast(message);
+  });
   return {
     success: true,
     sent: response.success,
@@ -87,8 +90,9 @@ const markAsReadAll = async (userId) => {
   const result = await Notification.updateMany(filter, update);
   return result.modifiedCount > 0;
 };
+
 module.exports = {
-  createNotification,
+  sendPushNotification,
   getUserNotification,
   markAsReadById,
   markAsReadAll,

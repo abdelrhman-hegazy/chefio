@@ -33,7 +33,7 @@ app.use("/api/v1/recipe", recipeRouter);
 app.use("/api/v1/recipe/likes", likeRouter);
 app.use("/api/v1/chef/follow", followRouter);
 app.use("/api/v1/notification", notificationRouter);
-app.use("/api/v1/device-token", deviceTokenRouter);
+app.use("/api/v1/device-tokens", deviceTokenRouter);
 
 app.get("/api/v1/profile", (req, res) => {
   res.send("welcome in chefio profile");

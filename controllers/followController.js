@@ -1,14 +1,26 @@
 const Follow = require("../models/FollowModel");
 const User = require("../models/UserModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
-
+const Notification = require("../models/NotificationModel");
+const DeviceToken = require("../models/DeviceTokenModel");
+const { sendPushNotification } = require("../services/notificationService");
 // endpoint to follow or unfollow a chef
 const followChef = async (req, res) => {
   try {
-    const { userId } = req.user;
-    const { targetUserId } = req.params;
+    const { userId: sender } = req.user;
+    const { targetUserId: receiver } = req.params;
+    if (!receiver) {
+      return sendErrorResponse(
+        res,
+        400,
+        "receiver is missing",
+        "invalid_request"
+      );
+    }
+    console.log("Sender:", sender);
+    console.log("Receiver:", receiver);
 
-    if (targetUserId === userId) {
+    if (receiver === sender) {
       return sendErrorResponse(
         res,
         400,
@@ -16,14 +28,15 @@ const followChef = async (req, res) => {
         "invalid_request"
       );
     }
-    const targetUser = await User.findById(targetUserId);
-    const currentUser = await User.findById(userId);
+
+    const targetUser = await User.findById(receiver);
+    const currentUser = await User.findById(sender);
     if (!targetUser || !currentUser) {
       return sendErrorResponse(res, 404, "user not found", "not_found");
     }
     const existingFollow = await Follow.findOne({
-      following: userId,
-      follower: targetUserId,
+      following: sender,
+      follower: receiver,
     });
     if (existingFollow) {
       await Follow.findByIdAndDelete(existingFollow._id);
@@ -35,10 +48,18 @@ const followChef = async (req, res) => {
           "invalid_request"
         );
       }
+
+      // Decrement the followers and following counts
       targetUser.followersCount -= 1;
       currentUser.followingCount -= 1;
       await targetUser.save();
       await currentUser.save();
+      // remove notification
+      await Notification.deleteMany({
+        receiver,
+        sender,
+        type: "follow",
+      });
       // await User.findByIdAndUpdate(userId,{$inc:{}})
       return res.status(200).json({
         success: true,
@@ -46,14 +67,16 @@ const followChef = async (req, res) => {
       });
     }
     const follow = new Follow({
-      following: userId,
-      follower: targetUserId,
+      following: sender,
+      follower: receiver,
     });
     await follow.save();
     targetUser.followersCount += 1;
     currentUser.followingCount += 1;
     await targetUser.save();
     await currentUser.save();
+    // send notification
+    await sendPushNotification({ sender, receiver, type: "follow" });
     res.status(200).json({
       success: true,
       message: "Followed chef successfully",

@@ -8,6 +8,8 @@ const {
 const User = require("../models/UserModel");
 const Category = require("../models/CategoryModel");
 const Like = require("../models/LikeModel");
+const { sendPushNotification } = require("../services/notificationService");
+const Follow = require("../models/FollowModel");
 const { default: mongoose } = require("mongoose");
 
 //get all categories
@@ -109,6 +111,19 @@ const createRecipe = async (req, res) => {
     });
 
     const savedRecipe = await newRecipe.save();
+    // Send push notification to followers
+    const followers = await Follow.find({ following: userId }).select(
+      "follower"
+    );
+    const followerIds = followers.map((f) => f.follower.toString());
+    if (followerIds.length > 0) {
+      await sendPushNotification({
+        receiver: followerIds,
+        sender: userId,
+        type: "new_recipe",
+        recipeId: savedRecipe._id.toString(),
+      });
+    }
     return res.status(201).json({
       success: true,
       message: "Recipe created successfully",
