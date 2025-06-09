@@ -1,6 +1,10 @@
 const DeviceToken = require("../models/DeviceTokenModel");
 
 const saveDeviceToken = async (userId, token, device = "unknown") => {
+  const existingDeviceToken = await DeviceToken.findOne({ user: userId ,token});
+  if (existingDeviceToken) {
+    return;
+  }
   const existingToken = await DeviceToken.findOne({ user: userId , device});
   if (!existingToken) {
     //create new deviceToken
