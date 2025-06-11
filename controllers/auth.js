@@ -10,6 +10,7 @@ const {
 } = require("../middlewares/validator");
 const User = require("../models/UserModel");
 const RefreshToken = require("../models/RefreshTokens");
+const DeviceToken = require("../models/DeviceTokenModel");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
 const { json } = require("express");
@@ -62,7 +63,7 @@ const signup = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
@@ -137,49 +138,117 @@ const signin = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
 };
 // signout
+// const signout = async (req, res) => {
+//   try {
+//     const authHeader = req.cookies.Authorization || "";
+//     const refreshToken = isMobileClient
+//       ? req.body.refreshToken
+//       : authHeader.split(" ")[1] || null;
+//     console.log("Refresh Token:", refreshToken);
+//     if (!refreshToken) {
+//       return sendErrorResponse(
+//         res,
+//         401,
+//         "Unauthorized access!",
+//         "unauthorized"
+//       );
+//     }
+
+//     const tokenExists = await RefreshToken.findOne({ token: refreshToken }).select("userId").exec();
+//     if (!tokenExists) {
+//       return sendErrorResponse(
+//         res,
+//         404,
+//         "Token not found or already logged out!",
+//         "not_found"
+//       );
+//     }
+
+//     const deviceToken = await DeviceToken.findOneAndDelete({
+//       user: tokenExists.userId,
+//     });
+
+//     if (!deviceToken) {
+//       return sendErrorResponse(
+//         res,
+//         404,
+//         "Device token not found!",
+//         "not_found"
+//       );
+//     }
+
+//     await RefreshToken.deleteOne({ token: refreshToken });
+
+//     if (isMobileClient) {
+//       return res.status(200).json({
+//         success: true,
+//         message: "Logged out successfully",
+//       });
+//     }
+
+//     return res
+//       .clearCookie("Authorization")
+//       .status(200)
+//       .json({ success: true, message: "Logged out successfully" });
+
+//   } catch (error) {
+//     console.error("Logout Error:", error);
+//     return sendErrorResponse(
+//       res,
+//       500,
+//       error.message || "Internal server error",
+//       "internal_server_error"
+//     );
+//   }
+// };
 const signout = async (req, res) => {
-  try {
-    // const { refreshToken } = req.body;
-    const isMobileClient = req.headers.client === "not-browser";
-    const refreshToken = isMobileClient
-      ? req.body.refreshToken
-      : req.cookies.Authorization.split(" ")[1];
-
-    if (!refreshToken) {
+  const { userId } = req.user;
+  try{
+    if(!userId) {
+      return sendErrorResponse(
+        res,
+        401,
+        "Unauthorized access!",
+        "unauthorized"
+      );
+    }
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return sendErrorResponse(res, 404, "User does not exist!", "not_found");
+    }
+    // Clear the refresh token from the database
+    await RefreshToken.deleteMany({ userId });
+    // Clear the device token from the database
+    await DeviceToken.deleteMany({ user: userId });
+    // Clear the cookie if it's a web client
+    const isMobileClient = req.headers.client === "not-browser"; 
+    if (!isMobileClient) {
       return res
-        .status(400)
-        .json({ success: false, message: "Refresh token is required!" });
+        .clearCookie("Authorization")
+        .status(200)
+        .json({ success: true, message: "Logged out successfully" });
     }
-
-    const tokenExists = await RefreshToken.findOne({ token: refreshToken });
-
-    if (!tokenExists) {
-      return res.status(404).json({
-        success: false,
-        message: "Token not found or already logged out!",
-      });
-    }
-
-    await RefreshToken.deleteOne({ token: refreshToken });
-
-    return res
-      .clearCookie("Authorization")
-      .status(200)
-      .json({ success: true, message: "logged out successfully" });
-  } catch (error) {
-    console.error("Logout Error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error" });
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
   }
-};
-
+  catch (error) {
+    console.error("Logout Error:", error);
+    return sendErrorResponse(
+      res,
+      500,
+      error.message || "Internal server error",
+      "internal_server_error"
+    );
+  }
+}
 // send-verification-code
 const sendVerificationCode = async (req, res) => {
   const { email } = req.body;
@@ -258,7 +327,7 @@ const sendVerificationCode = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
@@ -332,14 +401,8 @@ const verifyVerificationCode = async (req, res) => {
         success: true,
         message: "your account has been verified!",
       });
-    }
-    else if (hashedCodeValue !== existingUser.verificationCode) {
-      return sendErrorResponse(
-        res,
-        401,
-        "Invalid code!",
-        "invalid_code"
-      );
+    } else if (hashedCodeValue !== existingUser.verificationCode) {
+      return sendErrorResponse(res, 401, "Invalid code!", "invalid_code");
     }
     return res
       .status(401)
@@ -349,7 +412,7 @@ const verifyVerificationCode = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
@@ -452,7 +515,7 @@ const sendForgotPasswordCode = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
@@ -519,7 +582,7 @@ const verifyForgotPasswordCode = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
@@ -577,7 +640,7 @@ const resetPassword = async (req, res) => {
     return sendErrorResponse(
       res,
       500,
-      "Internal server error",
+      error.message || "Internal server error",
       "internal_server_error"
     );
   }
