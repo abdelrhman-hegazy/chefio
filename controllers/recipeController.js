@@ -116,13 +116,18 @@ const createRecipe = async (req, res) => {
       "follower"
     );
     const followerIds = followers.map((f) => f.follower.toString());
+
     if (followerIds.length > 0) {
-      await sendPushNotification({
-        receiver: followerIds,
-        sender: userId,
-        type: "new_recipe",
-        recipeId: savedRecipe._id.toString(),
-      });
+      for (const followerId of followerIds) {
+        await sendPushNotification({
+          receiver: followerId,
+          sender: userId,
+          type: "new_recipe",
+          recipeId: savedRecipe._id.toString(),
+          recipePicture: savedRecipe.recipePicture,
+          isFollowed: true,
+        });
+      }
     }
     return res.status(201).json({
       success: true,
@@ -331,8 +336,8 @@ const updateRecipe = async (req, res) => {
       },
       { new: true }
     );
-    console.log(req.headers['content-type']);
-    
+    console.log(req.headers["content-type"]);
+
     return res.status(200).json({
       success: true,
       message: "Recipe updated successfully",

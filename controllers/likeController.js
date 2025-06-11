@@ -1,8 +1,9 @@
 const Like = require("../models/LikeModel");
 const Recipe = require("../models/RecipeModel");
 const User = require("../models/UserModel");
+const Follow = require("../models/FollowModel");
 const { sendErrorResponse } = require("../utils/errorHandler");
-const {sendPushNotification} = require("../services/notificationService");
+const { sendPushNotification } = require("../services/notificationService");
 const Notification = require("../models/NotificationModel");
 // @desc    Like or unlike a recipe
 // @route   POST /api/v1/recipe/likes/:recipeId
@@ -25,7 +26,7 @@ const like = async (req, res) => {
       await Like.deleteOne({ _id: existingLike.id });
       recipe.likesCount -= 1;
       await recipe.save();
-      //delete like in notification  
+      //delete like in notification
       await Notification.deleteMany({
         receiver: recipe.createdBy,
         sender: userId,
@@ -42,12 +43,20 @@ const like = async (req, res) => {
       await newLike.save();
       recipe.likesCount += 1;
       await recipe.save();
+      // is followed
+      const isFollowed = await Follow.findOne({
+        follower: userId,
+        following: recipe.createdBy,
+      });
       //send notification
       await sendPushNotification({
         receiver: recipe.createdBy,
         sender: userId,
         type: "like",
         recipeId: recipeId,
+        recipePicture: recipe.recipePicture,
+        chefImage: user.profilePicture,
+        isFollowed: !!isFollowed,
       });
       return res.status(200).json({
         success: true,

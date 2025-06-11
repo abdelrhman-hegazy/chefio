@@ -17,9 +17,6 @@ const followChef = async (req, res) => {
         "invalid_request"
       );
     }
-    console.log("Sender:", sender);
-    console.log("Receiver:", receiver);
-
     if (receiver === sender) {
       return sendErrorResponse(
         res,
@@ -75,8 +72,19 @@ const followChef = async (req, res) => {
     currentUser.followingCount += 1;
     await targetUser.save();
     await currentUser.save();
+    // is followed
+    const isFollowed = await Follow.findOne({
+      follower: receiver,
+      following:sender
+    })
     // send notification
-    await sendPushNotification({ sender, receiver, type: "follow" });
+    await sendPushNotification({
+      receiver,
+      sender,
+      type: "follow",
+      chefImage: currentUser.profilePicture,
+      isFollowed: !!isFollowed,
+    });
     res.status(200).json({
       success: true,
       message: "Followed chef successfully",

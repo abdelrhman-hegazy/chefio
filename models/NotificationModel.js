@@ -20,6 +20,17 @@ const notificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Recipe",
   },
+  recipePicture:{
+    type: String,
+    trim: true
+  },
+  chefImage:{
+    type: String,
+  },
+  isFollowed: {
+    type: Boolean,
+    default: false,
+  },
   isRead: {
     type: Boolean,
     default: false,
