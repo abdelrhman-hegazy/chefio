@@ -42,4 +42,4 @@ const uploadMulter = (typImg) => {
   };
   return uploadMiddleware;
 };
-module.exports = uploadMulter;
+module.exports = { uploadMulter , upload };

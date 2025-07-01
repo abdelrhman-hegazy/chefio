@@ -15,20 +15,38 @@ const passwordJoi = joi
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!^%*?#&])[A-Za-z\d@$!%#*?&]{8,}$/
   );
 
+// const recipeSchemAll =
 // validated recipe schema
 const recipeSchema = joi.object({
-  foodName: joi.string().min(3).max(50).trim().required(),
+  foodName: joi.string().min(2).max(50).trim().required(),
   description: joi.string().min(3).max(500).trim().required(),
-  cookingDuration: joi.number().min(5).max(300).required(),
+  cookingDuration: joi.number().required(),
   ingredients: joi.array().items(joi.string().trim()).min(2).max(20).required(),
-  steps: joi.array().items(joi.string().trim()).min(2).max(20).required(),
+  steps: joi
+    .array()
+    .items(
+      joi.object({
+        step: joi.string().min(2).max(500).required(),
+        stepImage: joi.string().optional(),
+      })
+    )
+    .min(1)
+    .required(),
 });
 const recipeUpdateSchema = joi.object({
-  foodName: joi.string().min(3).max(50).trim().optional(),
+  foodName: joi.string().min(2).max(50).trim().optional(),
   description: joi.string().min(3).max(500).trim().optional(),
-  cookingDuration: joi.number().min(5).max(300).optional(),
+  cookingDuration: joi.number().optional(),
   ingredients: joi.array().items(joi.string().trim()).min(2).max(20).optional(),
-  steps: joi.array().items(joi.string().trim()).min(2).max(20).optional(),
+  steps: joi
+    .array()
+    .items(
+      joi.object({
+        step: joi.string().min(2).max(500).required(),
+        stepImage: joi.string().optional(),
+      })  
+    )
+    .optional(),
 });
 const signupSchema = joi.object({
   username: usernameJoi,
@@ -40,7 +58,13 @@ const signinSchema = joi.object({
   email: emailJoi,
   password: passwordJoi,
 });
-
+const googleSigninSchema = joi.object({
+  //googleId: uniqeu google id
+  googleId: joi.string().required(),
+  email: emailJoi,
+  username: usernameJoi,
+  profilePicture: joi.string().optional(),
+});
 const accesptCodeSchema = joi.object({
   email: emailJoi,
   providedCode: joi.number().required(),
@@ -66,4 +90,5 @@ module.exports = {
   acceptResetPasswordSchema,
   recipeSchema,
   recipeUpdateSchema,
+  googleSigninSchema,
 };

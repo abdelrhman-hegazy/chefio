@@ -1,5 +1,5 @@
 const { OAuth2Client } = require("google-auth-library");
-const { sendErrorResponse } = require("../utils/errorHandler");
+const { sendErrorResponse } = require("../utils/errorResponse");
 
 const client = new OAuth2Client([
   process.env.GOOGLE_CLIENT_ID_WEB,
