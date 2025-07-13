@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { sendErrorResponse } = require("../utils/errorHandler");
+const { sendErrorResponse } = require("../utils/errorResponse");
 
 const identifier = (req, res, next) => {
   let token;

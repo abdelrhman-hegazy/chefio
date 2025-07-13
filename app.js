@@ -5,18 +5,11 @@ const helmet = require("helmet"); // adding headers
 const cors = require("cors"); // Cros-Orign Resource sharing
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
-// const mongoose = require("mongoose")
-
-// routers
-const authRouter = require("./routers/authRouter");
-const userRouter = require("./routers/profileRouter");
-const recipeRouter = require("./routers/recipeRouter");
-const likeRouter = require("./routers/likeRouter");
-const followRouter = require("./routers/followRouter");
-const notificationRouter = require("./routers/notificationRouter");
-const deviceTokenRouter = require("./routers/deviceTokenRouter");
+const errorHandler = require("./middlewares/errorHandler"); // custom error handler
 
 const connectDB = require("./db/connect");
+const routers = require("./routers")
+
 const app = express();
 
 app.use(helmet());
@@ -27,17 +20,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public"))); // for serving static files
 
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/user", userRouter);
-app.use("/api/v1/recipe", recipeRouter);
-app.use("/api/v1/recipe/likes", likeRouter);
-app.use("/api/v1/chef/follow", followRouter);
-app.use("/api/v1/notification", notificationRouter);
-app.use("/api/v1/device-tokens", deviceTokenRouter);
-
-app.get("/api/v1/profile", (req, res) => {
-  res.send("welcome in chefio profile");
-});
+// all routes 
+app.use("/api/v1",routers)
 
 app.get("/", (req, res) => {
   res.json({ message: "welcome in chefio" });
@@ -56,4 +40,6 @@ const start = async () => {
 };
 start();
 
+// Error handling middleware
+app.use(errorHandler);
 module.exports = app;

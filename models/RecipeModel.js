@@ -26,10 +26,19 @@ const recipeSchema = new mongoose.Schema(
       type: [String],
       required: [true, "Ingredients are required"],
     },
-    steps: {
-      type: [String],
-      required: [true, "Steps are required"],
-    },
+    steps: [
+      {
+        step:{
+          type:String,
+          required: true,
+          trim: true
+        },
+        stepImage:{
+          type: String,
+          default: "null"
+        }
+      }
+    ],
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
