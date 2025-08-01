@@ -2,37 +2,37 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/UserModel");
 const RefreshToken = require("../models/RefreshTokens");
 const DeviceToken = require("../models/DeviceTokenModel");
+const RefreshTokenRepository = require("../repositories/refreshToken.repository");
+const DeviceTokenRepository = require("../repositories/deviceToken.repository");
 const crypto = require("crypto");
 const { verificationCodeTemplate } = require("../utils/emailTemplates");
 const { doHash, doHashValidation, hmacProcess } = require("../utils/hashing");
 const transport = require("../middlewares/sendMail");
-const { sendErrorResponse } = require("../utils/errorResponse");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 const { verifyGoogleToken } = require("../config/googleAuth");
-const { checkUserByEmail, checkUserById } = require("../utils/userChecks");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const UserRepository = require("../repositories/user.repository");
+const generateSecureCode = require("../utils/generateSecureCode");
 //signup
 const signup = catchAsync(async (req, res, next) => {
   const { email, password, username } = req.body;
-
-  if (await checkUserByEmail(email)) {
+  if (await UserRepository.findOne({ email })) {
     return next(new AppError("user already exists!", 409, "conflict"));
   }
   const hashedPassword = await doHash(password, 12);
 
-  const newUser = new User({
+  const newUser = await UserRepository.create({
     username,
     email,
     password: hashedPassword,
   });
 
-  const result = await newUser.save();
-  result.password = undefined;
+  newUser.password = undefined;
   return res.status(201).json({
     success: true,
     message: "Your account has been created successfully",
-    result,
+    newUser,
   });
 });
 
@@ -40,9 +40,7 @@ const signup = catchAsync(async (req, res, next) => {
 const signin = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const existingUser = await User.findOne({ email }).select(
-    "+password +verified"
-  );
+  const existingUser = await UserRepository.findByEmailWithPassword({ email });
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }
@@ -50,8 +48,11 @@ const signin = catchAsync(async (req, res, next) => {
   if (!password) {
     return next(new AppError("Password is required!", 400, "bad_request"));
   }
-  const result = await doHashValidation(password, existingUser.password);
-  if (!result) {
+  const isPasswordCorrect = await doHashValidation(
+    password,
+    existingUser.password
+  );
+  if (!isPasswordCorrect) {
     return next(
       new AppError("Invalid credentials!", 401, "invalid_credentials")
     );
@@ -71,8 +72,8 @@ const signin = catchAsync(async (req, res, next) => {
   if (isMobileClient) {
     return res.status(200).json({
       success: true,
-      accessToken: "Bearer " + accessToken,
-      refreshToken: "Bearer " + refreshToken,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
       message: "logged in successfully",
     });
   } else {
@@ -93,20 +94,16 @@ const signin = catchAsync(async (req, res, next) => {
 
 const signout = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
-  console.log("signout userId", userId);
 
   if (!userId) {
     return next(new AppError("User ID is required!", 400, "bad_request"));
   }
-  if (!(await checkUserById(userId))) {
+  if (!(await UserRepository.findById(userId))) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }
 
-  // Clear the refresh token from the database
-  await RefreshToken.deleteMany({ userId });
-  // Clear the device token from the database
-  await DeviceToken.deleteMany({ user: userId });
-  // Clear the cookie if it's a web client
+  await RefreshTokenRepository.deleteByUserId(userId);
+  await DeviceTokenRepository.deleteByUserId(userId);
   const isMobileClient = req.headers.client === "not-browser";
   if (!isMobileClient) {
     return res
@@ -122,7 +119,7 @@ const signout = catchAsync(async (req, res, next) => {
 // send-verification-code
 const sendVerificationCode = catchAsync(async (req, res, next) => {
   const { email } = req.body;
-  const existingUser = await checkUserByEmail(email);
+  const existingUser = await UserRepository.findOne({ email });
   if (!existingUser)
     return next(new AppError("User does not exist!", 404, "not_found"));
 
@@ -140,27 +137,22 @@ const sendVerificationCode = catchAsync(async (req, res, next) => {
       )
     );
   }
-
   let info = await transport.sendMail({
     from: `"Chefio Support" <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
     to: existingUser.email,
     subject: "Verification Code",
     html: verificationCodeTemplate(codeValue),
   });
-  if (
-    info.accepted &&
-    info.accepted.length > 0 &&
-    info.accepted[0] === existingUser.email
-  ) {
-    const hashedCodeValue = hmacProcess(
-      codeValue,
-      process.env.HMAC_VERIFICATION_CODE_SECRET
+  if (info.accepted && info.accepted.includes(existingUser.email)) {
+    const hashed = generateSecureCode(
+      process.env.HMAC_VERIFICATION_CODE_SECRET,
+      codeValue
     );
 
-    existingUser.verificationCode = hashedCodeValue;
-    existingUser.verificationCodeValidation = Date.now();
-    await existingUser.save();
-
+    await UserRepository.updateById(existingUser._id, {
+      verificationCode: hashed,
+      verificationCodeValidation: Date.now(),
+    });
     return res.status(200).json({ success: true, message: "Code sent!" });
   }
 
@@ -173,9 +165,7 @@ const verifyVerificationCode = catchAsync(async (req, res, next) => {
   const { email, providedCode } = req.body;
   const codeValue = providedCode.toString();
 
-  const existingUser = await User.findOne({ email }).select(
-    "+verificationCode +verificationCodeValidation"
-  );
+  const existingUser = await UserRepository.findOneVerificationCode({ email });
 
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
@@ -192,30 +182,28 @@ const verifyVerificationCode = catchAsync(async (req, res, next) => {
       new AppError("Something is wrong with the code!", 400, "bad_request")
     );
   }
-  let timeDifference = Date.now() - existingUser.verificationCodeValidation;
-  if (timeDifference > 3 * 60 * 1000) {
+  const timeDiff = Date.now() - existingUser.verificationCodeValidation;
+  const isCodeExpired = timeDiff > 3 * 60 * 1000;
+  if (isCodeExpired) {
     return next(new AppError("Code has expired!", 401, "expired_code"));
   }
-
   const hashedCodeValue = hmacProcess(
     codeValue,
     process.env.HMAC_VERIFICATION_CODE_SECRET
   );
-  if (hashedCodeValue === existingUser.verificationCode) {
-    existingUser.verified = true;
-    existingUser.verificationCode = undefined;
-    existingUser.verificationCodeValidation = undefined;
-    await existingUser.save();
-    return res.status(200).json({
-      success: true,
-      message: "your account has been verified!",
-    });
-  } else if (hashedCodeValue !== existingUser.verificationCode) {
+  if (hashedCodeValue !== existingUser.verificationCode) {
     return next(new AppError("Invalid code!", 401, "invalid_code"));
   }
-  return next(
-    new AppError("Unexpected error occurred!", 401, "unexpected_error")
-  );
+  await UserRepository.updateById(existingUser._id, {
+    verified: true,
+    verificationCode: undefined,
+    verificationCodeValidation: undefined,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Your account has been verified!",
+  });
 });
 
 // change password
@@ -223,7 +211,7 @@ const changePassword = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const { oldPassword, newPassword } = req.body;
 
-  const existingUser = await User.findOne({ _id: userId }).select("+password");
+  const existingUser = await UserRepository.findByIdWithPassword(userId);
 
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
@@ -241,8 +229,9 @@ const changePassword = catchAsync(async (req, res, next) => {
     );
   }
   const hashedPassword = await doHash(newPassword, 12);
-  existingUser.password = hashedPassword;
-  await existingUser.save();
+  await UserRepository.updateById(existingUser._id, {
+    password: hashedPassword,
+  });
   return res.status(200).json({
     success: true,
     message: "password updated!",
@@ -253,11 +242,10 @@ const changePassword = catchAsync(async (req, res, next) => {
 const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
   const { email } = req.body;
 
-  const existingUser = await checkUserByEmail(email);
+  const existingUser = await UserRepository.findOne({ email });
   if (!existingUser)
     return next(new AppError("User does not exist!", 404, "not_found"));
 
-  const codeValue = crypto.randomInt(100000, 999999).toString();
   const info = await transport.sendMail({
     from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
     to: existingUser.email,
@@ -265,14 +253,14 @@ const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
     html: verificationCodeTemplate(codeValue),
   });
 
-  if (info.accepted[0] === existingUser.email) {
-    const hashedCodeValue = hmacProcess(
-      codeValue,
+  if (info.accepted && info.accepted.includes(existingUser.email)) {
+    const hashedCodeValue = generateSecureCode(
       process.env.HMAC_VERIFICATION_CODE_SECRET
     );
-    existingUser.forgotPasswordCode = hashedCodeValue;
-    existingUser.forgotPasswordCodeValidation = Date.now();
-    await existingUser.save();
+    await UserRepository.updateById(existingUser._id, {
+      forgotPasswordCode: hashedCodeValue,
+      forgotPasswordCodeValidation: Date.now(),
+    });
     return res.status(200).json({ success: true, message: "Code sent!" });
   }
 
@@ -284,18 +272,15 @@ const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
 // verify-forgot-password-code
 const verifyForgotPasswordCode = catchAsync(async (req, res, next) => {
   const { email, providedCode } = req.body;
-  const existingUser = await User.findOne({ email }).select(
-    "+forgotPasswordCode +forgotPasswordCodeValidation"
-  );
+  const existingUser = await UserRepository.findOneForgotPasswordCode({
+    email,
+  });
 
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }
-
-  if (
-    !existingUser.forgotPasswordCode ||
-    !existingUser.forgotPasswordCodeValidation
-  ) {
+  const { forgotPasswordCode, forgotPasswordCodeValidation } = existingUser;
+  if (!forgotPasswordCode || !forgotPasswordCodeValidation) {
     return next(
       new AppError(
         "Reset code is missing or invalid. Please request a new one.",
@@ -327,34 +312,19 @@ const verifyForgotPasswordCode = catchAsync(async (req, res, next) => {
 const resetPassword = catchAsync(async (req, res, next) => {
   const { email, newPassword } = req.body;
 
-  const existingUser = await User.findOne({ email }).select(
-    "+forgotPasswordCode +forgotPasswordCodeValidation"
-  );
+  const existingUser = await UserRepository.findOneForgotPasswordCode(email);
 
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }
 
-  if (
-    !existingUser.forgotPasswordCode ||
-    !existingUser.forgotPasswordCodeValidation
-  ) {
-    return next(
-      new AppError(
-        "Reset code is missing or invalid. Please request a new one.",
-        401,
-        "invalid_code"
-      )
-    );
-  }
-
   const hashedPassword = await doHash(newPassword, 12);
-  existingUser.password = hashedPassword;
-  existingUser.forgotPasswordCode = undefined;
-  existingUser.forgotPasswordCodeValidation = undefined;
 
-  await existingUser.save();
-
+  await UserRepository.updateById(existingUser._id, {
+    password: hashedPassword,
+    forgotPasswordCode: undefined,
+    forgotPasswordCodeValidation: undefined,
+  });
   return res.status(200).json({
     success: true,
     message: "Password has been updated successfully!",
@@ -365,26 +335,28 @@ const resetPassword = catchAsync(async (req, res, next) => {
 const refreshAccessToken = catchAsync(async (req, res, next) => {
   const isMobileClient = req.headers.client === "not-browser";
   if (!isMobileClient && !req.cookies.Authorization) {
-    return next(
-      new AppError("Authorization cookie is missing!", 401, "unauthorized")
-    );
+    return next(new AppError("Refresh token is missing!", 401, "unauthorized"));
   }
   const refreshToken = isMobileClient
     ? req.body.refreshToken.split(" ")[1]
     : req.cookies.Authorization.split(" ")[1];
 
   if (!refreshToken) {
+    return next(new AppError("Refresh token is missing!", 401, "unauthorized"));
   }
 
-  const existingToken = await RefreshToken.findOne({ token: refreshToken });
+  const existingToken = await RefreshTokenRepository.RefreshTokenFindOne(
+    refreshToken
+  );
 
   if (!existingToken) {
     return next(new AppError("Refresh token not found!", 404, "not_found"));
   }
 
-  const existingUser = await checkUserById(existingToken.userId);
+  const existingUser = await UserRepository.findById(existingToken.userId);
   if (!existingUser)
     return next(new AppError("User not found!", 404, "not_found"));
+
   jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err) => {
     if (err) {
       const errorMessage =
@@ -416,26 +388,35 @@ const googleSignin = catchAsync(async (req, res, next) => {
       new AppError("Google ID token is required!", 400, "bad_request")
     );
   }
+
   const payload = await verifyGoogleToken(IdToken);
   if (!payload) {
     return next(new AppError("Invalid Google ID token!", 401, "unauthorized"));
   }
+
   const platform =
     payload.aud === process.env.GOOGLE_CLIENT_ID_ANDROID ? "android" : "web";
-  let user = await User.findOne({ email: payload.email });
+  let user = await UserRepository.findOne({ email: payload.email });
 
   if (!user) {
-    user = new User({
+    user = await UserRepository.create({
       googleId: payload.sub,
       email: payload.email,
       username: payload.name,
-      avatar: payload.picture,
+      profilePicture: payload.picture,
       verified: true,
     });
-    await user.save();
+  } else {
+    await UserRepository.updateById(user._id, {
+      googleId: payload.sub,
+      email: payload.email,
+      username: payload.name,
+      profilePicture: payload.picture,
+      verified: true,
+    });
   }
-  const accessToken = generateAccessToken(user);
-  const refreshToken = await generateRefreshToken(user);
+  const accessToken = "Bearer " + generateAccessToken(user);
+  const refreshToken = "Bearer " + (await generateRefreshToken(user));
 
   if (platform === "android") {
     return res.status(200).json({

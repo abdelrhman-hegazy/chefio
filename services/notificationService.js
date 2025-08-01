@@ -1,8 +1,8 @@
 const admin = require("../config/firebase/firebase");
-const Notification = require("../models/NotificationModel");
-const DeviceToken = require("../models/DeviceTokenModel");
-const User = require("../models/UserModel");
-const Follow = require("../models/FollowModel");
+const UserRepository = require("../repositories/user.repository");
+const NotificationRepository = require("../repositories/notification.repository");
+const DeviceTokenRepository = require("../repositories/deviceToken.repository");
+const AppError = require("../utils/appError");
 const sendPushNotification = async ({
   receiver,
   sender,
@@ -12,41 +12,37 @@ const sendPushNotification = async ({
   chefImage,
   isFollowed = false,
 }) => {
-  const senderUser = await User.findById(sender).select(
-    "username profilePicture"
-  );
 
+  const senderUser = await UserRepository.findByIdNotify(sender);
+
+  if (!senderUser) {
+    throw new AppError("Sender user not found", 404, "not_found");
+  }
   const titleMap = {
     like: `${senderUser.username} liked your recipe`,
     follow: `${senderUser.username} started following you`,
     new_recipe: `${senderUser.username} sent you a new recipe`,
   };
 
-  // 👇 دعم إرسال إشعارات لمستخدم واحد أو عدة متابعين
   const receiverList = Array.isArray(receiver) ? receiver : [receiver];
 
   const notifications = await Promise.all(
     receiverList.map(async (receiverId) => {
-      // حفظ الإشعار في قاعدة البيانات
-      const notification = await Notification.create({
+      const notification = await NotificationRepository.create({
         receiver: receiverId,
-        sender,
+        sender: senderUser._id,
         type,
         recipeId,
         recipePicture,
         chefImage: chefImage,
         isFollowed,
       });
-
-      // الحصول على التوكنات الخاصة بهذا المستلم
-      const receiverTokens = await DeviceToken.find({
-        user: receiverId,
-      }).select("token -_id");
+      const receiverTokens =
+        await DeviceTokenRepository.findDeviceTokensByUserId(receiverId);
       if (receiverTokens.length === 0) return null;
 
       const fcmTokens = receiverTokens.map((tk) => tk.token);
 
-      // إرسال الإشعار
       const response = await admin.messaging().sendEachForMulticast({
         tokens: fcmTokens,
         notification: {
@@ -80,16 +76,14 @@ const sendPushNotification = async ({
 
 const getUserNotification = async (userId, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
-  const notifications = await Notification.find({ receiver: userId })
-    .populate("sender", "username profilePicture")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const notifications = await NotificationRepository.findSenderByReceiverId(
+    userId,
+    skip,
+    limit
+  );
 
-  const totalNotifications = await Notification.countDocuments({
-    receiver: userId,
-  });
-
+  const totalNotifications =
+    await NotificationRepository.countDocumentsByReceiverId(userId);
   return {
     totalNotifications,
     totalPages: Math.ceil(totalNotifications / limit),
@@ -100,13 +94,13 @@ const getUserNotification = async (userId, page = 1, limit = 10) => {
 const markAsReadById = async (notificationId) => {
   const filter = { _id: notificationId };
   const update = { isRead: true };
-  const result = await Notification.updateOne(filter, update);
+  const result = await NotificationRepository.findOneAndUpdate(filter, update);
   return result.modifiedCount > 0;
 };
 const markAsReadAll = async (userId) => {
   const filter = { receiver: userId };
   const update = { isRead: true };
-  const result = await Notification.updateMany(filter, update);
+  const result = await NotificationRepository.updateManyNotify(filter, update);
   return result.modifiedCount > 0;
 };
 

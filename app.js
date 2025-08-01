@@ -8,7 +8,7 @@ const compression = require("compression");
 const errorHandler = require("./middlewares/errorHandler"); // custom error handler
 
 const connectDB = require("./db/connect");
-const routers = require("./routers")
+const routers = require("./routers");
 
 const app = express();
 
@@ -20,8 +20,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public"))); // for serving static files
 
-// all routes 
-app.use("/api/v1",routers)
+// all routes
+app.use("/api/v1", routers);
 
 app.get("/", (req, res) => {
   res.json({ message: "welcome in chefio" });

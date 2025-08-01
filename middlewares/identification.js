@@ -1,54 +1,39 @@
 const jwt = require("jsonwebtoken");
-const { sendErrorResponse } = require("../utils/errorResponse");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
 
-const identifier = (req, res, next) => {
-  let token;
+const identifier = catchAsync(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
   
-  if (req.headers.authorization) {
-    token = req.headers.authorization.split(" ")[1];
-  } else {
-    return sendErrorResponse(
-      res,
-      401,
-      "Unauthorized: No token provided",
-      "unauthorized"
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return next(
+      new AppError("Unauthorized: No token provided", 401, "unauthorized")
     );
   }
-  try {
-    const userToken = token;
-    jwt.verify(userToken, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      if (err) {
-        if (err.name === "TokenExpiredError") {
-          return sendErrorResponse(
-            res,
-            401,
-            "Token expired",
-            "TokenExpiredError"
-          );
-        } else if (err.name === "JsonWebTokenError") {
-          return sendErrorResponse(
-            res,
-            403,
-            "Invalid token",
-            "JsonWebTokenError"
-          );
-        } else {
-          return sendErrorResponse(
-            res,
-            403,
-            "Unauthorized",
-            "Token_verification_failed"
-          );
-        }
+
+  const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      if (err.name === "TokenExpiredError") {
+        return next(new AppError("Token expired", 401, "token_expired"));
+      }
+      if (err.name === "JsonWebTokenError") {
+        return next(new AppError("Invalid token", 401, "invalid_token"));
       }
 
-      req.user = decoded;
-      next();
-    });
-  } catch (error) {
-    console.log(error);
-    return sendErrorResponse(res, 500, "Internal Server Error", "ServerErroru");
-  }
-};
+      return next(
+        new AppError(
+          "Token verification failed",
+          403,
+          "token_verification_failed"
+        )
+      );
+    }
+
+    req.user = decoded;
+    next();
+  });
+});
 
 module.exports = identifier;

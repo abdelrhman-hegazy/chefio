@@ -22,6 +22,7 @@ const recipeSchema = joi.object({
   description: joi.string().min(3).max(500).trim().required(),
   cookingDuration: joi.number().required(),
   ingredients: joi.array().items(joi.string().trim()).min(2).max(20).required(),
+  categoryId: joi.string().optional(),
   steps: joi
     .array()
     .items(
@@ -38,6 +39,7 @@ const recipeUpdateSchema = joi.object({
   description: joi.string().min(3).max(500).trim().optional(),
   cookingDuration: joi.number().optional(),
   ingredients: joi.array().items(joi.string().trim()).min(2).max(20).optional(),
+  categoryId: joi.string().optional(),
   steps: joi
     .array()
     .items(
