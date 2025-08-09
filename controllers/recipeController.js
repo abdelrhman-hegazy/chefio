@@ -188,6 +188,7 @@ const getRecipeById = catchAsync(async (req, res, next) => {
 const updateRecipe = catchAsync(async (req, res, next) => {
   const recipeId = req.params.id;
   const { userId } = req.user;
+
   await ensureUserExists(userId);
 
   const existingRecipe = await RecipeRepository.findById(recipeId);
@@ -213,7 +214,7 @@ const updateRecipe = catchAsync(async (req, res, next) => {
   if (recipePicture) {
     recipePicture = recipePicture.path;
   }
-  
+
   const finalSteps = steps.map((stepObj) => {
     const imgFile = files.find((file) => file.fieldname === stepObj.stepImage);
     return {

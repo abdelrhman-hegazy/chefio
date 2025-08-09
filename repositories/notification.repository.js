@@ -1,8 +1,8 @@
 const BaseRepository = require("./base.repository");
-const Follow = require("../models/FollowModel");
+const Notification = require("../models/NotificationModel")
 class NotificationRepository extends BaseRepository {
   constructor() {
-    super(Follow);
+    super(Notification);
   }
 
   async findSenderByReceiverId(userId, skip, limit) {

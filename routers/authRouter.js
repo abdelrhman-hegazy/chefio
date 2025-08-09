@@ -71,6 +71,7 @@ router.post(
 );
 router.patch(
   "/reset-password",
+  identifier,
   validate(acceptResetPasswordSchema),
   resetPassword
 );

@@ -1,7 +1,4 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/UserModel");
-const RefreshToken = require("../models/RefreshTokens");
-const DeviceToken = require("../models/DeviceTokenModel");
 const RefreshTokenRepository = require("../repositories/refreshToken.repository");
 const DeviceTokenRepository = require("../repositories/deviceToken.repository");
 const crypto = require("crypto");
@@ -246,8 +243,10 @@ const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
   if (!existingUser)
     return next(new AppError("User does not exist!", 404, "not_found"));
 
+  const codeValue = crypto.randomInt(100000, 999999).toString();
+
   const info = await transport.sendMail({
-    from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
+    from: `"Chefio Support" <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
     to: existingUser.email,
     subject: "forgot password code",
     html: verificationCodeTemplate(codeValue),
@@ -255,7 +254,8 @@ const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
 
   if (info.accepted && info.accepted.includes(existingUser.email)) {
     const hashedCodeValue = generateSecureCode(
-      process.env.HMAC_VERIFICATION_CODE_SECRET
+      process.env.HMAC_VERIFICATION_CODE_SECRET,
+      codeValue
     );
     await UserRepository.updateById(existingUser._id, {
       forgotPasswordCode: hashedCodeValue,
@@ -311,9 +311,12 @@ const verifyForgotPasswordCode = catchAsync(async (req, res, next) => {
 // reset-password
 const resetPassword = catchAsync(async (req, res, next) => {
   const { email, newPassword } = req.body;
+  const { userId } = req.user;
 
-  const existingUser = await UserRepository.findOneForgotPasswordCode(email);
-
+  const existingUser = await UserRepository.findOneForgotPasswordCode(email);  
+  if(userId !== existingUser._id.toString()){
+    return next(new AppError("You are not authorized to reset this password!", 403, "forbidden"));
+  }
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }

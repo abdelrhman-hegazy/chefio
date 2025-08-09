@@ -3,7 +3,9 @@ const ensureUserExists = require("../helpers/ensureUserExists");
 const AppError = require("../utils/appError");
 const UserRepository = require("../repositories/user.repository");
 const LikeRepository = require("../repositories/like.repository");
+const FollowRepository = require("../repositories/follow.repository")
 const RecipeRepository = require("../repositories/recipe.repository");
+const { sk } = require("@faker-js/faker");
 //endpoint to upload a profile picture
 const uploadProfilePicture = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
@@ -11,7 +13,7 @@ const uploadProfilePicture = catchAsync(async (req, res, next) => {
   if (!req.file || !req.file.path) {
     return next(new AppError("No image file provided", 400, "bad_request"));
   }
-  const updatedUser = await UserRepository.updateUserById(userId, {
+  const updatedUser = await UserRepository.updateById(userId, {
     profilePicture: req.file.path,
   });
   if (!updatedUser) {
@@ -43,8 +45,8 @@ const getProfile = catchAsync(async (req, res, next) => {
     userRecipes,
     followDoc,
   ] = await Promise.all([
-    UserRepository.findProfileById(targetUserId),
-    UserRepository.findProfileById(userId),
+    UserRepository.findById(targetUserId),
+    UserRepository.findById(userId),
     LikeRepository.findRecipeByUserId(userId),
     RecipeRepository.countDocuments({ createdBy: targetUserId }),
     RecipeRepository.findRecipebyUserId(
@@ -52,7 +54,7 @@ const getProfile = catchAsync(async (req, res, next) => {
       skipRecipes,
       limitRecipes
     ),
-    followRepository.findFollow(targetUserId, userId),
+    FollowRepository.findFollow(targetUserId, userId),
   ]);
 
   let isFollowing = "not_following";
@@ -112,21 +114,11 @@ const getRecipesProfile = catchAsync(async (req, res, next) => {
     return next(new AppError("Target user not found", 404, "not_found"));
   }
 
-  const totalRecipes = await Recipe.countDocuments({
+  const totalRecipes = await RecipeRepository.countDocuments({
     createdBy: targetUserId,
   });
 
-  const recipes = await Recipe.find({ createdBy: targetUserId })
-    .select("recipePicture foodName cookingDuration category createdBy")
-    .populate([
-      { path: "category", select: "name" },
-      { path: "createdBy", select: "_id username profilePicture" },
-    ])
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
+  const recipes = await RecipeRepository.getRecipesProfile(targetUser,skip,limit)
   const userLikes = await LikeRepository.findRecipeByUserId(userId);
   const likedIds = new Set(userLikes.map((like) => like.recipe.toString()));
 

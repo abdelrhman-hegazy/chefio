@@ -1,8 +1,11 @@
 const DeviceToken = require("../models/DeviceTokenModel");
 const BaseRepository = require("./base.repository");
 class DeviceTokenRepository extends BaseRepository {
+  constructor(){
+    super(DeviceToken)
+  }
   async deleteByUserId(userId) {
-    return await DeviceToken.deleteMany({ user: userId });
+    return await this.model.deleteMany({ user: userId });
   }
   async findDeviceTokensByUserId(receiverId) {
     return this.model

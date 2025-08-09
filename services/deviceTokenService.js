@@ -1,11 +1,8 @@
-const DeviceToken = require("../models/DeviceTokenModel");
 const DeviceTokenRepository = require("../repositories/deviceToken.repository");
+const ensureUserExists = require("../helpers/ensureUserExists")
 
 const saveDeviceToken = async (userId, token, device = "unknown") => {
-  const existingDeviceToken = await DeviceTokenRepository.findById(userId);
-  if (existingDeviceToken) {
-    return;
-  }
+  await ensureUserExists(userId)
   const existingToken = await DeviceTokenRepository.findOne({
     user: userId,
     device,

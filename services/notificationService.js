@@ -3,6 +3,7 @@ const UserRepository = require("../repositories/user.repository");
 const NotificationRepository = require("../repositories/notification.repository");
 const DeviceTokenRepository = require("../repositories/deviceToken.repository");
 const AppError = require("../utils/appError");
+const notificationRepository = require("../repositories/notification.repository");
 const sendPushNotification = async ({
   receiver,
   sender,
@@ -12,8 +13,7 @@ const sendPushNotification = async ({
   chefImage,
   isFollowed = false,
 }) => {
-
-  const senderUser = await UserRepository.findByIdNotify(sender);
+  const senderUser = await UserRepository.findById(sender);
 
   if (!senderUser) {
     throw new AppError("Sender user not found", 404, "not_found");
@@ -37,8 +37,10 @@ const sendPushNotification = async ({
         chefImage: chefImage,
         isFollowed,
       });
+
       const receiverTokens =
         await DeviceTokenRepository.findDeviceTokensByUserId(receiverId);
+
       if (receiverTokens.length === 0) return null;
 
       const fcmTokens = receiverTokens.map((tk) => tk.token);
@@ -94,14 +96,15 @@ const getUserNotification = async (userId, page = 1, limit = 10) => {
 const markAsReadById = async (notificationId) => {
   const filter = { _id: notificationId };
   const update = { isRead: true };
-  const result = await NotificationRepository.findOneAndUpdate(filter, update);
-  return result.modifiedCount > 0;
+  const result = await NotificationRepository.updateById(filter, update);
+  return !!result;
 };
 const markAsReadAll = async (userId) => {
   const filter = { receiver: userId };
   const update = { isRead: true };
   const result = await NotificationRepository.updateManyNotify(filter, update);
-  return result.modifiedCount > 0;
+
+  return !!result;
 };
 
 module.exports = {

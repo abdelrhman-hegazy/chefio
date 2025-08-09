@@ -18,7 +18,7 @@ class UserRepository extends BaseRepository {
   }
   async findOneForgotPasswordCode(email) {
     return this.model
-      .findOne(email)
+      .findOne({ email })
       .select("+forgotPasswordCode +forgotPasswordCodeValidation");
   }
   async findUsernameProfileById(userId) {

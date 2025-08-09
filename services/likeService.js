@@ -36,7 +36,7 @@ const toggleLikeServices = async (userId, recipeId) => {
       likesCount: recipe.likesCount,
     };
   } else {
-    const newLike = await LikeRepository.create({
+     await LikeRepository.create({
       user: userId,
       recipe: recipeId,
     });
@@ -49,7 +49,7 @@ const toggleLikeServices = async (userId, recipeId) => {
       follower: userId,
       following: recipe.createdBy,
     });
-
+    
     // Send notification
     await sendPushNotification({
       receiver: recipe.createdBy,

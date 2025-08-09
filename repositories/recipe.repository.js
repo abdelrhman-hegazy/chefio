@@ -31,7 +31,7 @@ class RecipeRepository extends BaseRepository {
       })
       .lean();
   }
-  async findRecipebyUserId(userId, skip = 0, limit = 10) {
+  async findRecipebyUserId(userId, skipRecipes = 0, limitRecipes = 10) {
     return this.model
       .find({ createdBy: userId })
       .select("recipePicture foodName cookingDuration category")
@@ -39,6 +39,19 @@ class RecipeRepository extends BaseRepository {
       .sort({ createdAt: -1 })
       .skip(skipRecipes)
       .limit(limitRecipes)
+      .lean();
+  }
+  async getRecipesProfile(targetUserId, skip, limit) {
+    return this.model
+      .find({ createdBy: targetUserId })
+      .select("recipePicture foodName cookingDuration category createdBy")
+      .populate([
+        { path: "category", select: "name" },
+        { path: "createdBy", select: "_id username profilePicture" },
+      ])
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
   }
 }
