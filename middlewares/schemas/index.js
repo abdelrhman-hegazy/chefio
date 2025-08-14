@@ -6,7 +6,7 @@ const emailJoi = joi
   .min(6)
   .max(60)
   .required()
-  .email({ tlds: { allow: ["com", "net"] } });
+  .email({ tlds: { allow: ["com", "net","me"] } });
 
 const passwordJoi = joi
   .string()

@@ -14,7 +14,13 @@ const generateSecureCode = require("../utils/generateSecureCode");
 //signup
 const signup = catchAsync(async (req, res, next) => {
   const { email, password, username } = req.body;
-  if (await UserRepository.findOne({ email })) {
+  const exisitingUser = await UserRepository.findOne({ email });
+  if (exisitingUser) {
+    if (exisitingUser.verified === false) {
+      return next(
+        new AppError("uesr is not verify", 401, "email_not_verified")
+      );
+    }
     return next(new AppError("user already exists!", 409, "conflict"));
   }
   const hashedPassword = await doHash(password, 12);
@@ -32,7 +38,6 @@ const signup = catchAsync(async (req, res, next) => {
     newUser,
   });
 });
-
 //signin
 const signin = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
@@ -54,9 +59,7 @@ const signin = catchAsync(async (req, res, next) => {
       new AppError("Invalid credentials!", 401, "invalid_credentials")
     );
   }
-
-  // is verify
-  if (!existingUser.verified) {
+  if (existingUser.verified === false) {
     return next(
       new AppError("You are not verified user!", 401, "email_not_verified")
     );
@@ -125,15 +128,6 @@ const sendVerificationCode = catchAsync(async (req, res, next) => {
 
   const codeValue = crypto.randomInt(100000, 999999).toString();
 
-  if (!transport) {
-    return next(
-      new AppError(
-        "Email transport is not available!",
-        500,
-        "internal_server_error"
-      )
-    );
-  }
   let info = await transport.sendMail({
     from: `"Chefio Support" <${process.env.NODE_CODE_SENDING_EMAIL_ADDRESS}>`,
     to: existingUser.email,
@@ -272,9 +266,7 @@ const sendForgotPasswordCode = catchAsync(async (req, res, next) => {
 // verify-forgot-password-code
 const verifyForgotPasswordCode = catchAsync(async (req, res, next) => {
   const { email, providedCode } = req.body;
-  const existingUser = await UserRepository.findOneForgotPasswordCode({
-    email,
-  });
+  const existingUser = await UserRepository.findOneForgotPasswordCode(email);
 
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
@@ -311,12 +303,8 @@ const verifyForgotPasswordCode = catchAsync(async (req, res, next) => {
 // reset-password
 const resetPassword = catchAsync(async (req, res, next) => {
   const { email, newPassword } = req.body;
-  const { userId } = req.user;
 
-  const existingUser = await UserRepository.findOneForgotPasswordCode(email);  
-  if(userId !== existingUser._id.toString()){
-    return next(new AppError("You are not authorized to reset this password!", 403, "forbidden"));
-  }
+  const existingUser = await UserRepository.findOneForgotPasswordCode(email);
   if (!existingUser) {
     return next(new AppError("User does not exist!", 404, "not_found"));
   }

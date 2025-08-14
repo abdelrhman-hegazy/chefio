@@ -5,7 +5,7 @@ exports.verificationCodeTemplate = function (code) {
         <h2 style="color: #4caf50;">Welcome to Chefio 👨‍🍳</h2>
         <p style="font-size: 16px;">Your verification code is:</p>
         <h1 style="font-size: 32px; color: #4caf50; letter-spacing: 2px;">${code}</h1>
-        <p style="font-size: 14px; color: #888;">This code will expire in 5 minutes.</p>
+        <p style="font-size: 14px; color: #888;">This code will expire in 3 minutes.</p>
         <p style="font-size: 14px;">If you did not request this code, you can safely ignore this email.</p>
         <br />
         <hr style="border: none; border-top: 1px solid #eee;" />

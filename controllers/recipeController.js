@@ -32,6 +32,7 @@ const createRecipe = catchAsync(async (req, res, next) => {
   } = req.body;
 
   const files = req.files;
+
   const recipePicture = files.find(
     (file) => file.fieldname === "recipePicture"
   );
@@ -219,7 +220,7 @@ const updateRecipe = catchAsync(async (req, res, next) => {
     const imgFile = files.find((file) => file.fieldname === stepObj.stepImage);
     return {
       step: stepObj.step,
-      stepImage: imgFile ? imgFile.path : null, // Use the file path if it exists
+      stepImage: imgFile ? imgFile.path : stepObj.stepImage || null, 
     };
   });
   const updatedRecipe = await RecipeRepository.updateById(recipeId, {
