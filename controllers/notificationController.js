@@ -1,6 +1,7 @@
 const notificationServices = require("../services/notificationService");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+
 const getNotifications = catchAsync(async (req, res, next) => {
   const { page = 1, limit = 10 } = req.query;
   const { userId } = req.user;

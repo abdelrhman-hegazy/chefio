@@ -7,13 +7,12 @@ const {
   getRecipeById,
   updateRecipe,
   deleteRecipe,
-  likeRecipe,
 } = require("../controllers/recipeController");
 
 const identifier = require("../middlewares/identification");
-const {uploadMulter,upload} = require("../middlewares/upload");
+const { upload } = require("../middlewares/upload");
 const validate = require("../middlewares/validate");
-
+const validateObjectId = require("../middlewares/validateObjectId");
 const { recipeSchema, recipeUpdateSchema } = require("../middlewares/schemas");
 
 // routs
@@ -21,27 +20,31 @@ router.get("/get-categories", identifier, getCategories);
 router.post(
   "/create-recipe",
   identifier,
-  upload.fields([
-    { name: "recipePicture", maxCount: 1 },
-    { name: "stepImage", maxCount: 20 },
-  ]),
+  upload.any(),
   validate(recipeSchema),
   createRecipe
 );
 router.get("/get-recipes", identifier, getRecipe);
-router.get("/get-recipe/:id", identifier, getRecipeById);
+router.get(
+  "/get-recipe/:id",
+  identifier,
+  validateObjectId("id"),
+  getRecipeById
+);
 router.patch(
   "/update-recipe/:id",
   identifier,
-  upload.fields([
-    { name: "recipePicture", maxCount: 1 },
-    { name: "stepImage", maxCount: 20 },
-  ]),
+  upload.any(),
   validate(recipeUpdateSchema),
+  validateObjectId("id"),
   updateRecipe
 );
-router.delete("/delete-recipe/:id", identifier, deleteRecipe);
-router.patch("/like-recipe/:id", identifier, likeRecipe);
+router.delete(
+  "/delete-recipe/:id",
+  identifier,
+  validateObjectId("id"),
+  deleteRecipe
+);
 
 // Export the router
 module.exports = router;

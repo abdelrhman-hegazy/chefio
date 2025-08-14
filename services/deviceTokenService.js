@@ -1,23 +1,23 @@
-const DeviceToken = require("../models/DeviceTokenModel");
+const DeviceTokenRepository = require("../repositories/deviceToken.repository");
+const ensureUserExists = require("../helpers/ensureUserExists")
 
 const saveDeviceToken = async (userId, token, device = "unknown") => {
-  const existingDeviceToken = await DeviceToken.findOne({ user: userId ,token});
-  if (existingDeviceToken) {
-    return;
-  }
-  const existingToken = await DeviceToken.findOne({ user: userId , device});
+  await ensureUserExists(userId)
+  const existingToken = await DeviceTokenRepository.findOne({
+    user: userId,
+    device,
+  });
   if (!existingToken) {
     //create new deviceToken
-    const newDeviceToken = new DeviceToken({ user: userId, token, device });
-    await newDeviceToken.save();
+    await DeviceTokenRepository.create({ user: userId, token, device });
   } else {
     //update deviceToken
-    await DeviceToken.updateOne({ user: userId }, { token, device });
+    await DeviceTokenRepository.updateDeviceTokenByUserId(userId, { token, device });
   }
 };
 
 const removeDeviceToken = async (userId, token) => {
-  await DeviceToken.findOneAndDelete({ user: userId, token });
+  await DeviceTokenRepository.deleteByUserIdAndToken(userId, token);
 };
 
 module.exports = {

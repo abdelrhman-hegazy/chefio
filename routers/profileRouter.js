@@ -8,7 +8,7 @@ const {
 } = require("../controllers/profileController");
 const identifier = require("../middlewares/identification");
 // const upload = require('../middlewares/upload');
-const {uploadMulter} = require("../middlewares/upload");
+const { uploadMulter } = require("../middlewares/upload");
 const router = express.Router();
 
 router.patch(
@@ -30,6 +30,5 @@ router.get(
   identifier,
   getLikedRecipesProfile
 );
-
 
 module.exports = router;

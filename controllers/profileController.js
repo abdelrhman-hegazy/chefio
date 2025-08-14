@@ -1,22 +1,21 @@
-const User = require("../models/UserModel");
-const Follow = require("../models/FollowModel");
-const Recipe = require("../models/RecipeModel");
-const Like = require("../models/LikeModel");
-const { sendErrorResponse } = require("../utils/errorResponse");
 const catchAsync = require("../utils/catchAsync");
+const ensureUserExists = require("../helpers/ensureUserExists");
 const AppError = require("../utils/appError");
-const { ne } = require("@faker-js/faker");
+const UserRepository = require("../repositories/user.repository");
+const LikeRepository = require("../repositories/like.repository");
+const FollowRepository = require("../repositories/follow.repository")
+const RecipeRepository = require("../repositories/recipe.repository");
+const { sk } = require("@faker-js/faker");
 //endpoint to upload a profile picture
 const uploadProfilePicture = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
+  await ensureUserExists(userId);
   if (!req.file || !req.file.path) {
     return next(new AppError("No image file provided", 400, "bad_request"));
   }
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { profilePicture: req.file.path },
-    { new: true }
-  );
+  const updatedUser = await UserRepository.updateById(userId, {
+    profilePicture: req.file.path,
+  });
   if (!updatedUser) {
     return next(new AppError("User not found", 404, "not_found"));
   }
@@ -32,6 +31,7 @@ const getProfile = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const { userId: targetUserId } = req.params;
 
+  await Promise.all([ensureUserExists(userId), ensureUserExists(targetUserId)]);
   // pagination setup
   const pageRecipes = parseInt(req.query.pageRecipes) || 1;
   const limitRecipes = parseInt(req.query.limitRecipes) || 10;
@@ -45,27 +45,17 @@ const getProfile = catchAsync(async (req, res, next) => {
     userRecipes,
     followDoc,
   ] = await Promise.all([
-    User.findById(targetUserId).select("-password -__v").lean(),
-    User.findById(userId).lean(),
-    Like.find({ user: userId }).select("recipe").lean(),
-    Recipe.countDocuments({ createdBy: targetUserId }),
-    Recipe.find({ createdBy: targetUserId })
-      .select("recipePicture foodName cookingDuration category")
-      .populate("category", "name")
-      .sort({ createdAt: -1 })
-      .skip(skipRecipes)
-      .limit(limitRecipes)
-      .lean(),
-    Follow.findOne({ follower: targetUserId, following: userId }).lean(),
+    UserRepository.findById(targetUserId),
+    UserRepository.findById(userId),
+    LikeRepository.findRecipeByUserId(userId),
+    RecipeRepository.countDocuments({ createdBy: targetUserId }),
+    RecipeRepository.findRecipebyUserId(
+      targetUserId,
+      skipRecipes,
+      limitRecipes
+    ),
+    FollowRepository.findFollow(targetUserId, userId),
   ]);
-
-  if (!targetUser) {
-    return next(new AppError("Target user not found", 404, "not_found"));
-  }
-
-  if (!currentUser) {
-    return next(new AppError("Current user not found", 404, "not_found"));
-  }
 
   let isFollowing = "not_following";
   if (userId === targetUserId) {
@@ -119,27 +109,17 @@ const getRecipesProfile = catchAsync(async (req, res, next) => {
   const limit = parseInt(req.query.limitRecipes) || 10;
   const skip = (page - 1) * limit;
 
-  const targetUser = await User.findById(targetUserId).lean();
+  const targetUser = await UserRepository.findById(targetUserId);
   if (!targetUser) {
     return next(new AppError("Target user not found", 404, "not_found"));
   }
 
-  const totalRecipes = await Recipe.countDocuments({
+  const totalRecipes = await RecipeRepository.countDocuments({
     createdBy: targetUserId,
   });
 
-  const recipes = await Recipe.find({ createdBy: targetUserId })
-    .select("recipePicture foodName cookingDuration category createdBy")
-    .populate([
-      { path: "category", select: "name" },
-      { path: "createdBy", select: "_id username profilePicture" },
-    ])
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
-  const userLikes = await Like.find({ user: userId }).select("recipe").lean();
+  const recipes = await RecipeRepository.getRecipesProfile(targetUser,skip,limit)
+  const userLikes = await LikeRepository.findRecipeByUserId(userId);
   const likedIds = new Set(userLikes.map((like) => like.recipe.toString()));
 
   const formatted = recipes.map((recipe) => ({
@@ -179,31 +159,22 @@ const getLikedRecipesProfile = catchAsync(async (req, res, next) => {
   const limit = parseInt(req.query.limitLikedRecipes) || 10;
   const skip = (page - 1) * limit;
 
-  const targetUser = await User.findById(targetUserId).lean();
+  const targetUser = await UserRepository.findById(targetUserId);
   if (!targetUser) {
     return next(new AppError("Target user not found", 404, "not_found"));
   }
 
-  const totalLiked = await Like.countDocuments({ user: targetUserId });
+  const totalLiked = await LikeRepository.countDocuments({
+    user: targetUserId,
+  });
 
-  const likedRecipes = await Like.find({ user: targetUserId })
-    .select("recipe")
-    .populate({
-      path: "recipe",
-      select: "recipePicture foodName cookingDuration category createdBy",
-      populate: [
-        { path: "category", select: "name" },
-        { path: "createdBy", select: "_id username profilePicture" },
-      ],
-    })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
+  const likedRecipes = await LikeRepository.findLikedRecipesByUserId(
+    targetUser,
+    skip,
+    limit
+  );
 
-  const currentUserLikes = await Like.find({ user: userId })
-    .select("recipe")
-    .lean();
+  const currentUserLikes = await LikeRepository.findRecipeByUserId(userId);
   const likedRecipeIds = new Set(
     currentUserLikes.map((like) => like.recipe.toString())
   );
@@ -240,7 +211,7 @@ const getLikedRecipesProfile = catchAsync(async (req, res, next) => {
 const editProfile = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const { username } = req.body;
-  const user = await User.findById(userId).select("username profilePicture");
+  const user = await await UserRepository.findUsernameProfileById(userId);
   if (!user) {
     return next(new AppError("User not found", 404, "not_found"));
   }
@@ -252,11 +223,10 @@ const editProfile = catchAsync(async (req, res, next) => {
   }
   let updatedUser; // Default to the current user
   if (username || req.file) {
-    updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { username, profilePicture },
-      { new: true }
-    ).select("username profilePicture");
+    updatedUser = await UserRepository.updateUserById(userId, {
+      username,
+      profilePicture,
+    });
   } else {
     updatedUser = user;
   }

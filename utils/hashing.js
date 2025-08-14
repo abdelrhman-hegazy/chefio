@@ -12,7 +12,7 @@ const doHashValidation = (value, hashedValue) => {
 
 const hmacProcess = (value, key) => {
   const result = createHmac("sha256", key).update(value).digest("hex");
-  return result
+  return result;
 };
 
 module.exports = { doHash, doHashValidation, hmacProcess };

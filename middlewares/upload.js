@@ -12,7 +12,6 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage: storage });
-
 // uploadMulter middleware
 // This middleware is used to upload files to Cloudinary
 const uploadMulter = (typImg) => {
@@ -29,7 +28,6 @@ const uploadMulter = (typImg) => {
           }
         }
 
-        
         return res.status(400).json({
           success: false,
           message: "File upload failed.",
@@ -42,4 +40,4 @@ const uploadMulter = (typImg) => {
   };
   return uploadMiddleware;
 };
-module.exports = { uploadMulter , upload };
+module.exports = { uploadMulter, upload };
