@@ -27,6 +27,13 @@ class UserRepository extends BaseRepository {
   async findById(userId) {
     return this.model.findById(userId).select("-password -__v").lean();
   }
+  async findFollowersById(userId) {
+    return this.model.findById(userId).select("followers followersCount");
+  }
+  async findFollowingById(userId) {
+    return this.model.findById(userId).select("following followingCount");
+  }
+  
 }
 
 module.exports = new UserRepository();

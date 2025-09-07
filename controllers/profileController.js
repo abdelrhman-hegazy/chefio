@@ -3,9 +3,7 @@ const ensureUserExists = require("../helpers/ensureUserExists");
 const AppError = require("../utils/appError");
 const UserRepository = require("../repositories/user.repository");
 const LikeRepository = require("../repositories/like.repository");
-const FollowRepository = require("../repositories/follow.repository")
 const RecipeRepository = require("../repositories/recipe.repository");
-const { sk } = require("@faker-js/faker");
 //endpoint to upload a profile picture
 const uploadProfilePicture = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
@@ -29,7 +27,7 @@ const uploadProfilePicture = catchAsync(async (req, res, next) => {
 // endpoint to get the profile of a user
 const getProfile = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
-  const { userId: targetUserId } = req.params;
+  const { targetUserId } = req.params;
 
   await Promise.all([ensureUserExists(userId), ensureUserExists(targetUserId)]);
   // pagination setup
@@ -39,14 +37,12 @@ const getProfile = catchAsync(async (req, res, next) => {
 
   const [
     targetUser,
-    currentUser,
     currentUserLikes,
     totalUserRecipes,
     userRecipes,
-    followDoc,
+    followings,
   ] = await Promise.all([
     UserRepository.findById(targetUserId),
-    UserRepository.findById(userId),
     LikeRepository.findRecipeByUserId(userId),
     RecipeRepository.countDocuments({ createdBy: targetUserId }),
     RecipeRepository.findRecipebyUserId(
@@ -54,14 +50,17 @@ const getProfile = catchAsync(async (req, res, next) => {
       skipRecipes,
       limitRecipes
     ),
-    FollowRepository.findFollow(targetUserId, userId),
+    UserRepository.findFollowingById(userId),
   ]);
 
-  let isFollowing = "not_following";
+  let isFollowed;
   if (userId === targetUserId) {
-    isFollowing = "my_Profile";
-  } else if (followDoc) {
-    isFollowing = "following";
+    isFollowed = "me";
+  } else {
+    isFollowed = await followings.following.some(
+      (follow) => follow.user.toString() === targetUserId
+    );
+    isFollowed = isFollowed ? "true" : "false";
   }
 
   const likedRecipeIds = new Set(
@@ -82,9 +81,9 @@ const getProfile = catchAsync(async (req, res, next) => {
     username: targetUser.username,
     email: targetUser.email,
     profilePicture: targetUser.profilePicture,
-    followersCount: targetUser.followersCount,
+    followerCount: targetUser.followerCount,
     followingCount: targetUser.followingCount,
-    isFollowing,
+    isFollowing: isFollowed,
     recipes: {
       totalRecipes: totalUserRecipes,
       currentPage: pageRecipes,
@@ -103,7 +102,7 @@ const getProfile = catchAsync(async (req, res, next) => {
 // endpoint to get the liked recipes of a user
 const getRecipesProfile = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
-  const { userId: targetUserId } = req.params;
+  const { targetUserId } = req.params;
 
   const page = parseInt(req.query.pageRecipes) || 1;
   const limit = parseInt(req.query.limitRecipes) || 10;
@@ -118,7 +117,11 @@ const getRecipesProfile = catchAsync(async (req, res, next) => {
     createdBy: targetUserId,
   });
 
-  const recipes = await RecipeRepository.getRecipesProfile(targetUser,skip,limit)
+  const recipes = await RecipeRepository.getRecipesProfile(
+    targetUser,
+    skip,
+    limit
+  );
   const userLikes = await LikeRepository.findRecipeByUserId(userId);
   const likedIds = new Set(userLikes.map((like) => like.recipe.toString()));
 
@@ -211,7 +214,7 @@ const getLikedRecipesProfile = catchAsync(async (req, res, next) => {
 const editProfile = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const { username } = req.body;
-  const user = await await UserRepository.findUsernameProfileById(userId);
+  const user = await UserRepository.findUsernameProfileById(userId);
   if (!user) {
     return next(new AppError("User not found", 404, "not_found"));
   }
@@ -221,9 +224,13 @@ const editProfile = catchAsync(async (req, res, next) => {
   } else {
     profilePicture = req.file.path; // Check if a new profile picture is provided
   }
+  console.log(username);
+  console.log(req.file.path);
+  console.log(req.body);
+
   let updatedUser; // Default to the current user
   if (username || req.file) {
-    updatedUser = await UserRepository.updateUserById(userId, {
+    updatedUser = await UserRepository.updateById(userId, {
       username,
       profilePicture,
     });

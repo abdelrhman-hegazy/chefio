@@ -23,8 +23,8 @@ router.patch(
   uploadMulter("profilePicture"),
   editProfile
 );
-router.get("/get-profile/:userId", identifier, getProfile);
-router.get("/get-recipes-profile/:userId", identifier, getRecipesProfile);
+router.get("/get-profile/:targetUserId", identifier, getProfile);
+router.get("/get-recipes-profile/:targetUserId", identifier, getRecipesProfile);
 router.get(
   "/get-liked-recipes-profile/:userId",
   identifier,

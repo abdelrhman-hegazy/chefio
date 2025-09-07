@@ -8,6 +8,6 @@ const identifier = require("../middlewares/identification");
 const router = express.Router();
 
 router.post("/:targetUserId", identifier, followChef);
-router.get("/get-followers/:userId", identifier, getFollowers);
-router.get("/get-following/:userId", identifier, getFollowing);
+router.get("/get-followers/:targetUserId", identifier, getFollowers);
+router.get("/get-following/:targetUserId", identifier, getFollowing);
 module.exports = router;

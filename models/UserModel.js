@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { follower, following } = require("./FollowModel");
 
 const userSchema = mongoose.Schema(
   {
@@ -36,7 +37,9 @@ const userSchema = mongoose.Schema(
     profilePicture: {
       type: String,
     },
-    followersCount: {
+    followers: [follower],
+    following: [following],
+    followerCount: {
       type: Number,
       default: 0,
     },
@@ -67,5 +70,8 @@ const userSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.index({ followers: 1 });
+userSchema.index({ following: 1 });
 
 module.exports = mongoose.model("User", userSchema);

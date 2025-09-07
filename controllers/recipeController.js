@@ -257,6 +257,20 @@ const deleteRecipe = catchAsync(async (req, res, next) => {
     .json({ success: true, message: "Recipe deleted successfully" });
 });
 
+const deleteRecipeById = catchAsync(async (req, res, next) => {
+  const recipeId = req.params.id;
+  const existingRecipe = await RecipeRepository.findById(recipeId);
+  if (!existingRecipe) {
+    return next(new AppError("Recipe not found", 404, "not_found"));
+  }
+
+  // Delete the recipe
+  await RecipeRepository.deleteById(recipeId);
+  return res
+    .status(200)
+    .json({ success: true, message: "Recipe deleted successfully" });
+});
+
 module.exports = {
   createRecipe,
   getCategories,
@@ -264,4 +278,5 @@ module.exports = {
   getRecipeById,
   updateRecipe,
   deleteRecipe,
+  deleteRecipeById,
 };

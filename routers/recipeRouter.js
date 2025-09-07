@@ -7,6 +7,7 @@ const {
   getRecipeById,
   updateRecipe,
   deleteRecipe,
+  deleteRecipeById,
 } = require("../controllers/recipeController");
 
 const identifier = require("../middlewares/identification");
@@ -45,6 +46,9 @@ router.delete(
   validateObjectId("id"),
   deleteRecipe
 );
-
+router.delete(
+  "/admin/delete-recipe/:id",
+  deleteRecipeById
+);
 // Export the router
 module.exports = router;
