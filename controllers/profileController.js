@@ -81,7 +81,7 @@ const getProfile = catchAsync(async (req, res, next) => {
     username: targetUser.username,
     email: targetUser.email,
     profilePicture: targetUser.profilePicture,
-    followerCount: targetUser.followerCount,
+    followersCount: targetUser.followersCount,
     followingCount: targetUser.followingCount,
     isFollowing: isFollowed,
     recipes: {

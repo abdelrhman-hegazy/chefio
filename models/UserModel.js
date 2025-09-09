@@ -39,7 +39,7 @@ const userSchema = mongoose.Schema(
     },
     followers: [follower],
     following: [following],
-    followerCount: {
+    followersCount: {
       type: Number,
       default: 0,
     },

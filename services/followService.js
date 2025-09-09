@@ -25,7 +25,7 @@ const toggleFollow = async (senderId, reciverId) => {
       }),
       await UserRepository.updateById(reciverId, {
         $pull: { followers: { user: senderId } },
-        $inc: { followerCount: -1 },
+        $inc: { followersCount: -1 },
       }),
       NotificationRepository.deleteMany({
         receiver: reciverId,
@@ -52,7 +52,7 @@ const toggleFollow = async (senderId, reciverId) => {
           followedAt: new Date(),
         },
       },
-      $inc: { followerCount: 1 },
+      $inc: { followersCount: 1 },
     }),
     NotificationRepository.create({
       receiver: reciverId,
