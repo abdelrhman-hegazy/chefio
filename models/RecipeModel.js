@@ -1,5 +1,20 @@
 const mongoose = require("mongoose");
 
+const steps = new mongoose.Schema(
+  {
+    step: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    stepImage: {
+      type: String,
+      default: "null",
+    },
+  },
+  { _id: false }
+);
+
 const recipeSchema = new mongoose.Schema(
   {
     foodName: {
@@ -26,19 +41,7 @@ const recipeSchema = new mongoose.Schema(
       type: [String],
       required: [true, "Ingredients are required"],
     },
-    steps: [
-      {
-        step:{
-          type:String,
-          required: true,
-          trim: true
-        },
-        stepImage:{
-          type: String,
-          default: "null"
-        }
-      }
-    ],
+    steps: [steps],
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",

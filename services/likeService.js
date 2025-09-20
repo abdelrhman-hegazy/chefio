@@ -2,7 +2,6 @@ const AppError = require("../utils/appError");
 const LikeRepository = require("../repositories/like.repository");
 const UserRepository = require("../repositories/user.repository");
 const RecipeRepository = require("../repositories/recipe.repository");
-const FollowRepository = require("../repositories/follow.repository");
 const NotificationRepository = require("../repositories/notification.repository");
 const { sendPushNotification } = require("../services/notificationService");
 const ensureUserExists = require("../helpers/ensureUserExists");
@@ -45,9 +44,9 @@ const toggleLikeServices = async (userId, recipeId) => {
     });
     recipe.likesCount += 1;
     // Check if the user is followed
-    const isFollowed = await FollowRepository.findOne({
-      follower: userId,
-      following: recipe.createdBy,
+    const isFollowed = await UserRepository.isUserFollowed({
+      userId: recipe.createdBy,
+      followerId: userId,
     });
     
     // Send notification

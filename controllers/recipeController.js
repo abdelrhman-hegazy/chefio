@@ -6,8 +6,8 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const CategoryRepository = require("../repositories/categories.repository");
 const RecipeRepository = require("../repositories/recipe.repository");
-const FollowRepository = require("../repositories/follow.repository");
 const LikeRepository = require("../repositories/like.repository");
+const UserRepository = require("../repositories/user.repository");
 
 //get all categories
 const getCategories = catchAsync(async (req, res, next) => {
@@ -70,9 +70,9 @@ const createRecipe = catchAsync(async (req, res, next) => {
   });
 
   // Send push notification to followers
-  const followers = await FollowRepository.findFollowersRecipe({ userId });
+  const followers = await UserRepository.findFollowersById(userId);
 
-  const followerIds = followers.map((f) => f.follower.toString());
+  const followerIds = followers.followers.map((f) => f.user.toString());
   Promise.all(
     followerIds.map((followerId) =>
       sendPushNotification({
@@ -142,7 +142,7 @@ const getRecipe = catchAsync(async (req, res, next) => {
     likedRecipes.map((like) => like.recipe.toString())
   );
 
-  const updateRecipes = recipes.map((recipe) => {
+  const updatedRecipes = recipes.map((recipe) => {
     return {
       ...recipe,
       isLiked: likedRecipeIds.has(recipe._id.toString()),
@@ -154,7 +154,7 @@ const getRecipe = catchAsync(async (req, res, next) => {
     totalRecipes,
     currentPage: pageNumber,
     totalPages: Math.ceil(totalRecipes / limitNumber),
-    recipes: updateRecipes,
+    recipes: updatedRecipes,
   });
 });
 
@@ -220,7 +220,7 @@ const updateRecipe = catchAsync(async (req, res, next) => {
     const imgFile = files.find((file) => file.fieldname === stepObj.stepImage);
     return {
       step: stepObj.step,
-      stepImage: imgFile ? imgFile.path : stepObj.stepImage || null, 
+      stepImage: imgFile ? imgFile.path : stepObj.stepImage || null,
     };
   });
   const updatedRecipe = await RecipeRepository.updateById(recipeId, {

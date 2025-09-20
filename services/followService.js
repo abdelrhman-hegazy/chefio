@@ -1,4 +1,3 @@
-// const FollowRepository = require("../repositories/follow.repository");
 const UserRepository = require("../repositories/user.repository");
 const NotificationRepository = require("../repositories/notification.repository");
 const { sendPushNotification } = require("./notificationService");

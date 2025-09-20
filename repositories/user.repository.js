@@ -33,7 +33,13 @@ class UserRepository extends BaseRepository {
   async findFollowingById(userId) {
     return this.model.findById(userId).select("following followingCount");
   }
-  
+  async isUserFollowed({ userId, followerId }) {
+    const user = await this.model.findOne({
+      _id: userId,
+      followers: { $elemMatch: { user: followerId } },
+    });
+    return !!user;
+  }
 }
 
 module.exports = new UserRepository();

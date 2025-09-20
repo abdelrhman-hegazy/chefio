@@ -1,7 +1,6 @@
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const ensureUserExists = require("../helpers/ensureUserExists");
-const FollowRepository = require("../repositories/follow.repository");
 const {
   toggleFollow,
   getFollowersService,
