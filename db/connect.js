@@ -1,14 +1,27 @@
+// db.js
 const mongoose = require("mongoose");
 
-const connectDB = (url) => {
-  return mongoose.connect(url, {
-    serverSelectionTimeoutMS: 30000, // 30 seconds timeout instead of 10
-    socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-    connectTimeoutMS: 30000, // 30 seconds to connect
-    family: 4, // Use IPv4, skip trying IPv6
-    maxPoolSize: 10, // Maximum number of connections in pool
-    minPoolSize: 5,
-  });
+let isConnected = null; // cache state
+
+const connectDB = async (url) => {
+  if (isConnected) {
+    return;
+  }
+
+  try {
+    const db = await mongoose.connect(url, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      family: 4,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+    });
+
+    isConnected = db.connections[0].readyState === 1;
+  } catch (err) {
+    throw err;
+  }
 };
 
 module.exports = connectDB;
