@@ -1,4 +1,3 @@
-// db.js
 const mongoose = require("mongoose");
 
 let isConnected = null; // cache state

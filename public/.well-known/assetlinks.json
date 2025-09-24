@@ -1,14 +1,13 @@
 [
-    {
-        "relation": [
-            "delegate_permission/common.handle_all_urls"
-        ],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.example.chefio_app",
-            "sha256_cert_fingerprints": [
-                "A5:E1:B3:E6:54:5F:D6:75:C4:5E:8D:51:82:58:1E:45:B6:C5:C2:75:75:4B:E4:55:2D:32:C0:03:96:80:4A:C5"
-            ]
-        }
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.chefio_app",
+      "sha256_cert_fingerprints": [
+        "A5:E1:B3:E6:54:5F:D6:75:C4:5E:8D:51:82:58:1E:45:B6:C5:C2:75:75:4B:E4:55:2D:32:C0:03:96:80:4A:C5",
+        "9D:80:62:09:19:78:0B:69:05:C9:69:E7:4C:17:E9:95:01:84:50:1F:65:7D:10:F6:20:00:2B:48:F3:78:39:37"
+      ]
     }
+  }
 ]
