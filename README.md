@@ -1,9 +1,11 @@
 # 🍳 Chefio - Recipe Sharing Platform
 
 Chefio is a comprehensive social recipe sharing application that enables users to discover, create, and share culinary experiences. Built with modern technologies including MERN stack and Flutter, featuring real-time notifications, multi-language support, and seamless user interactions.
-
+### deployment in vercel
 ![Chefio Banner](https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073)
-![Chefio gmail](https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781)
+
+### send verification code gmail
+![Chefio Banner](https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781)
 
 ## ✨ Key Features
 
@@ -51,23 +53,7 @@ Chefio is a comprehensive social recipe sharing application that enables users t
 - **Local Storage**: Flutter Secure Storage for sensitive data
 - **HTTP Client**: Dio with interceptors and error handling
 - **Internationalization**: Full multi-language support
-chefio-backend/
-│
-├── app/
-│   ├── config/          # Environment configuration
-│   ├── controllers/     # Route handlers and business logic
-│   ├── models/          # MongoDB schemas and data models
-│   ├── db/              # Database connection setup
-│   ├── routes/          # Express route definitions
-│   ├── middlewares/     # Authentication and validation
-│   ├── repositories/    # Data access layer (Repository Pattern)
-│   ├── services/        # Business logic and external APIs
-│   ├── helpers/         # Utility functions and helpers
-│   └── app.js          # Application entry point
-│
-├── .env                # Environment variables
-├── package.json        # Dependencies and scripts
-└── README.md          # Project documentation
+
 ## 🚀 Quick Start
 
 ### Prerequisites
