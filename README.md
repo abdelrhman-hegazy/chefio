@@ -3,6 +3,7 @@
 Chefio is a comprehensive social recipe sharing application that enables users to discover, create, and share culinary experiences. Built with modern technologies including MERN stack and Flutter, featuring real-time notifications, multi-language support, and seamless user interactions.
 
 ![Chefio Banner](https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073)
+![Chefio gmail](https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781)
 
 ## ✨ Key Features
 
@@ -80,7 +81,7 @@ chefio-backend/
 ### 📸 Screenshots
 
 <img width="1176" height="607" alt="chefio deployment" src="https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073" />
-<img width="1024" height="558" alt="chefio gemail" src="https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781" />
+<img width="1024" height="558" alt="chefio gmail" src="https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781" />
 <img width="1365" height="733" alt="chefio getRecipe" src="https://github.com/user-attachments/assets/ebd557c4-17a8-4065-86e0-e336af19b4c2" />
 <img width="1365" height="730" alt="chefio sendverification" src="https://github.com/user-attachments/assets/b955c240-0f7b-4296-a979-c7de0a609af9" />
 <img width="1365" height="731" alt="chefio signin" src="https://github.com/user-attachments/assets/dc95baca-7327-410c-a58d-0ff21cdb45ab" />
