@@ -1,113 +1,83 @@
-# 🍳 Chefio - Recipe Sharing App
+# 🍳 Chefio - Recipe Sharing Platform
 
-Chefio is a social recipe sharing application that allows users to explore new recipes, follow their favorite chefs, like recipes, and receive real-time notifications. Built with MERN Stack + Flutter with full support for authentication, notifications, deep linking, and multiple languages.
+Chefio is a comprehensive social recipe sharing application that enables users to discover, create, and share culinary experiences. Built with modern technologies including MERN stack and Flutter, featuring real-time notifications, multi-language support, and seamless user interactions.
 
-![Chefio Deployment](https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073)
+![Chefio Banner](https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073)
 
-## 🚀 Features
+## ✨ Key Features
 
-### 🔐 Authentication & Authorization
-- Sign up, login, logout, reset password
-- Email verification (OTP)
-- Google Login
-- Access & Refresh Token system
+### 🔐 Secure Authentication
+- **User Registration & Login** with email verification
+- **Google OAuth Integration** for seamless sign-in
+- **JWT Token System** with access and refresh tokens
+- **Password Reset** functionality with OTP verification
+- **Secure Session Management** across devices
 
-### 📝 Recipes Management
-- Create, edit, delete recipes with images, ingredients, steps
-- Browse all recipes or filter by category
-- Recipe details with likes, chef info, and shareable links
-- Pagination, search, and sorting
+### 📚 Recipe Management
+- **Create & Edit Recipes** with rich media support
+- **Ingredient & Step Management** with intuitive interfaces
+- **Advanced Filtering** by categories, ingredients, and dietary preferences
+- **Recipe Discovery** with smart search and recommendations
+- **High-Quality Images** powered by Cloudinary integration
 
-### 👥 Social Features
-- Follow/Unfollow chefs
-- Like/Unlike recipes
-- View followers and following lists
-- Profile with uploaded and liked recipes
+### 👥 Social Interactions
+- **Follow/Unfollow System** for chefs and food enthusiasts
+- **Like & Bookmark** your favorite recipes
+- **Social Profiles** with activity feeds and statistics
+- **Community Engagement** through comments and ratings
+- **Share Recipes** across social media platforms
 
-### 🔔 Notifications
-- Push notifications via Firebase Cloud Messaging (FCM)
-- Notifications for likes, follows, and new recipes
-- Notifications screen
+### 🔔 Real-time Notifications
+- **Push Notifications** via Firebase Cloud Messaging
+- **Instant Alerts** for likes, follows, and new recipes
+- **Custom Notification Center** with management options
+- **Multi-channel Delivery** including email and in-app
 
-## 🛠️ Technologies
+## 🛠 Technology Stack
 
-### Backend (Node.js + Express + MongoDB)
-- **Runtime**: Node.js, Express.js
-- **Database**: MongoDB + Mongoose
-- **Authentication**: JWT (Access & Refresh Tokens)
-- **Email**: Nodemailer (for OTP & verification emails)
-- **Notifications**: Firebase Admin SDK
-- **Architecture**: Repository Pattern
-- **Deployment**: Vercel
+### Backend Architecture
+- **Runtime Environment**: Node.js with Express.js framework
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT with secure token rotation
+- **File Storage**: Cloudinary for image and media management
+- **Email Service**: Nodemailer with OTP verification
+- **Push Notifications**: Firebase Admin SDK
+- **API Design**: RESTful principles with proper status codes
 
-### Frontend (Flutter)
-- **Framework**: Flutter
-- **Storage**: Secure Token Storage (`flutter_secure_storage`)
-- **API**: Interceptor with robust session management
+### Frontend & Mobile
+- **Mobile App**: Flutter with responsive design
+- **State Management**: Provider/Riverpod for state handling
+- **Local Storage**: Flutter Secure Storage for sensitive data
+- **HTTP Client**: Dio with interceptors and error handling
+- **Internationalization**: Full multi-language support
 
-## 📂 Project Structure (Backend - MVC)
+## 📁 Project Structure (Backend - MVC)
 chefio-backend/
-│── app/
-│ ├── config/ # Environment, DB connection
-│ ├── controllers/ # Request handlers
-│ ├── models/ # Mongoose models
-│ ├── db/ # MongoDB connection
-│ ├── routes/ # Express routes
-│ ├── middlewares/ # Auth, error handling
-│ ├── repositories/ # Data access layer
-│ ├── services/ # Business logic
-│ ├── helpers/ # Utility functions
-│ └── app.js
-│── package.json
+├── app/
+│ ├── config/ # Environment configuration
+│ ├── controllers/ # Route handlers and business logic
+│ ├── models/ # MongoDB schemas and data models
+│ ├── db/ # Database connection setup
+│ ├── routes/ # Express route definitions
+│ ├── middlewares/ # Authentication and validation
+│ ├── repositories/ # Data access layer (Repository Pattern)
+│ ├── services/ # Business logic and external APIs
+│ ├── helpers/ # Utility functions and helpers
+│ └── app.js # Application entry point
+├── .env # Environment variables
+├── package.json # Dependencies and scripts
+└── README.md # Project documentation
 
+## 🚀 Quick Start
 
+### Prerequisites
+- Node.js 16+ installed
+- MongoDB Atlas account or local MongoDB
+- Flutter SDK for mobile development
 
-## ⚡ Installation & Setup
+### Backend Installation
 
-### Backend Setup
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/abdelrhman-hegazy/chefio.git
-cd chefio/backend
-npm install
-npm run dev
-
-
-Create .env file:
-# Server Configuration
-NODE_ENV="development"
-PORT="3000"
-MONGO_URI="mongodb-URI"
-
-# Authentication
-ACCESS_TOKEN_SECRET="your-access-token-secret"
-REFRESH_TOKEN_SECRET="your-refresh-token-secret"
-TOKEN_SECRET="your-token-secret"
-HMAC_VERIFICATION_CODE_SECRET="your-hmac-secret"
-
-# Email Configuration
-NODE_CODE_SENDING_EMAIL_ADDRESS="your-email@gmail.com"
-NODE_CODE_SENDING_EMAIL_PASSWORD="your-app-password"
-
-# Cloudinary (Image Storage)
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-api-key"
-CLOUDINARY_API_SECRET="your-api-secret"
-
-# Firebase (Notifications)
-FIREBASE_PROJECT_ID="your-project-id"
-FIREBASE_CLIENT_EMAIL="your-client-email"
-FIREBASE_PRIVATE_KEY="your-private-key"
-
-# Pexels API
-PEXELS_API_KEY="your-pexels-api-key"
-
-# Vercel Deployment
-VERCEL_OIDC_TOKEN="your-vercel-token"
-
-
-📸 Screenshots
+### 📸 Screenshots
 
 <img width="1176" height="607" alt="chefio deployment" src="https://github.com/user-attachments/assets/d3f44375-a4e6-4a7d-b005-6a2b1444c073" />
 <img width="1024" height="558" alt="chefio gemail" src="https://github.com/user-attachments/assets/1c465c89-3d7b-466d-b063-df4bc2c97781" />
@@ -117,6 +87,39 @@ VERCEL_OIDC_TOKEN="your-vercel-token"
 <img width="1365" height="731" alt="chefio signin1" src="https://github.com/user-attachments/assets/eb5b7828-dae5-46ab-8cc2-22a2256379cb" />
 
 
+
+1. **Clone and Setup**
+```bash
+git clone https://github.com/abdelrhman-hegazy/chefio.git
+cd chefio/backend
+npm install
+npm run dev
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/chefio
+
+# Security & Authentication
+ACCESS_TOKEN_SECRET=your_secure_access_token_secret_here
+REFRESH_TOKEN_SECRET=your_secure_refresh_token_secret_here
+TOKEN_SECRET=your_secure_token_secret_here
+HMAC_VERIFICATION_CODE_SECRET=your_hmac_secret_here
+
+# External Services
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_CLIENT_EMAIL=your_firebase_client_email
+FIREBASE_PRIVATE_KEY=your_firebase_private_key
+
+PEXELS_API_KEY=your_pexels_api_key
+
+# Email Service
+NODE_CODE_SENDING_EMAIL_ADDRESS=your_email@gmail.com
+NODE_CODE_SENDING_EMAIL_PASSWORD=your_app_password
+```
 ## 🤝 Collaboration
 
 Built with ❤️ by:
