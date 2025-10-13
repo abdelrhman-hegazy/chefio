@@ -51,24 +51,23 @@ Chefio is a comprehensive social recipe sharing application that enables users t
 - **Local Storage**: Flutter Secure Storage for sensitive data
 - **HTTP Client**: Dio with interceptors and error handling
 - **Internationalization**: Full multi-language support
-
-## 📁 Project Structure (Backend - MVC)
 chefio-backend/
+│
 ├── app/
-│ ├── config/ # Environment configuration
-│ ├── controllers/ # Route handlers and business logic
-│ ├── models/ # MongoDB schemas and data models
-│ ├── db/ # Database connection setup
-│ ├── routes/ # Express route definitions
-│ ├── middlewares/ # Authentication and validation
-│ ├── repositories/ # Data access layer (Repository Pattern)
-│ ├── services/ # Business logic and external APIs
-│ ├── helpers/ # Utility functions and helpers
-│ └── app.js # Application entry point
-├── .env # Environment variables
-├── package.json # Dependencies and scripts
-└── README.md # Project documentation
-
+│   ├── config/          # Environment configuration
+│   ├── controllers/     # Route handlers and business logic
+│   ├── models/          # MongoDB schemas and data models
+│   ├── db/              # Database connection setup
+│   ├── routes/          # Express route definitions
+│   ├── middlewares/     # Authentication and validation
+│   ├── repositories/    # Data access layer (Repository Pattern)
+│   ├── services/        # Business logic and external APIs
+│   ├── helpers/         # Utility functions and helpers
+│   └── app.js          # Application entry point
+│
+├── .env                # Environment variables
+├── package.json        # Dependencies and scripts
+└── README.md          # Project documentation
 ## 🚀 Quick Start
 
 ### Prerequisites
